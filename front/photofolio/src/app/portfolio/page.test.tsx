@@ -14,4 +14,9 @@ describe('Portfolio page', () => {
     expect(screen.getByRole('heading', { name: 'Portfolio' })).toBeInTheDocument();
     expect(screen.getByTestId('portfolio-gallery')).toBeInTheDocument();
   });
+
+  it('links back to the landing page', () => {
+    render(<PortfolioPage searchParams={Promise.resolve({})} />);
+    expect(screen.getByRole('link', { name: 'Your Name Photography' })).toHaveAttribute('href', '/');
+  });
 });

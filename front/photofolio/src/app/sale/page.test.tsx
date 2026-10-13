@@ -7,4 +7,9 @@ describe('Sale page', () => {
     render(<SalePage />);
     expect(screen.getByRole('heading', { name: /coming soon/i })).toBeInTheDocument();
   });
+
+  it('links back to the landing page', () => {
+    render(<SalePage />);
+    expect(screen.getByRole('link', { name: 'Your Name Photography' })).toHaveAttribute('href', '/');
+  });
 });
