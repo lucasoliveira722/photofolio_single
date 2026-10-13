@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import categoriesRouter from './routes/categories.js';
+import imagesRouter from './routes/images.js';
 
 const app = express();
 
@@ -12,5 +13,6 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/categories', categoriesRouter);
+app.use('/api/images', imagesRouter);
 
 export default app;
