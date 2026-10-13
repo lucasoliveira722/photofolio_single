@@ -58,4 +58,43 @@ describe('Lightbox', () => {
     render(<Lightbox images={untitled} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />);
     expect(screen.getByAltText('First desc')).toBeInTheDocument();
   });
+
+  it('moves focus to the Close button when opened', () => {
+    render(<Lightbox images={images} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+  });
+
+  it('keeps Tab focus inside the dialog', () => {
+    render(<Lightbox images={images} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />);
+    const close = screen.getByRole('button', { name: 'Close' });
+    const next = screen.getByRole('button', { name: 'Next' });
+
+    next.focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(close).toHaveFocus();
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+    expect(next).toHaveFocus();
+  });
+
+  it('locks page scroll while open and restores it on close', () => {
+    document.body.style.overflow = 'auto';
+    const { unmount } = render(<Lightbox images={images} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    unmount();
+    expect(document.body.style.overflow).toBe('auto');
+  });
+
+  it('returns focus to the previously focused element on close', () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+
+    const { unmount } = render(<Lightbox images={images} index={0} onClose={vi.fn()} onNavigate={vi.fn()} />);
+    unmount();
+
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
 });
