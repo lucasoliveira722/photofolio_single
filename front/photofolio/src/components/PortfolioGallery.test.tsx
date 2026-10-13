@@ -64,4 +64,14 @@ describe('PortfolioGallery', () => {
     expect(screen.getByText(/category not found/i)).toBeInTheDocument();
     expect(screen.queryByText(/couldn.t load photos/i)).not.toBeInTheDocument();
   });
+
+  it('treats an empty category param as no category and defaults to the first', async () => {
+    (getCategories as ReturnType<typeof vi.fn>).mockResolvedValue(categories);
+    (getCategoryImages as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    render(await PortfolioGallery({ searchParams: Promise.resolve({ category: '' }) }));
+
+    expect(getCategoryImages).toHaveBeenLastCalledWith('weddings');
+    expect(screen.getByRole('link', { name: 'Weddings' })).toHaveAttribute('aria-current', 'page');
+  });
 });

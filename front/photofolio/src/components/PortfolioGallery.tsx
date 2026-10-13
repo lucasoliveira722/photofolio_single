@@ -11,13 +11,13 @@ export default async function PortfolioGallery({ searchParams }: PortfolioGaller
 
   let categories: Awaited<ReturnType<typeof getCategories>> = [];
   let images: Awaited<ReturnType<typeof getCategoryImages>> = [];
-  let activeSlug = category ?? '';
+  let activeSlug = category || '';
   let loadError = false;
   let categoryNotFound = false;
 
   try {
     categories = await getCategories();
-    activeSlug = category ?? categories[0]?.slug ?? '';
+    activeSlug = category || categories[0]?.slug || '';
     if (activeSlug) {
       images = await getCategoryImages(activeSlug);
     }
