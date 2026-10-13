@@ -12,6 +12,7 @@ export default async function PortfolioGallery({ searchParams }: PortfolioGaller
   let categories: Awaited<ReturnType<typeof getCategories>> = [];
   let images: Awaited<ReturnType<typeof getCategoryImages>> = [];
   let activeSlug = category ?? '';
+  let loadError = false;
 
   try {
     categories = await getCategories();
@@ -20,6 +21,10 @@ export default async function PortfolioGallery({ searchParams }: PortfolioGaller
       images = await getCategoryImages(activeSlug);
     }
   } catch {
+    loadError = true;
+  }
+
+  if (loadError) {
     return <p className="mt-4 text-red-600">Couldn&apos;t load photos right now.</p>;
   }
 
