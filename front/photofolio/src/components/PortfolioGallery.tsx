@@ -1,6 +1,6 @@
 import CategoryTabs from './CategoryTabs';
 import ImageGrid from './ImageGrid';
-import { getCategories, getCategoryImages } from '@/lib/api';
+import { ApiError, getCategories, getCategoryImages } from '@/lib/api';
 
 type PortfolioGalleryProps = {
   searchParams: Promise<{ category?: string }>;
@@ -13,6 +13,7 @@ export default async function PortfolioGallery({ searchParams }: PortfolioGaller
   let images: Awaited<ReturnType<typeof getCategoryImages>> = [];
   let activeSlug = category ?? '';
   let loadError = false;
+  let categoryNotFound = false;
 
   try {
     categories = await getCategories();
@@ -20,8 +21,12 @@ export default async function PortfolioGallery({ searchParams }: PortfolioGaller
     if (activeSlug) {
       images = await getCategoryImages(activeSlug);
     }
-  } catch {
-    loadError = true;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      categoryNotFound = true;
+    } else {
+      loadError = true;
+    }
   }
 
   if (loadError) {
@@ -34,7 +39,11 @@ export default async function PortfolioGallery({ searchParams }: PortfolioGaller
         <CategoryTabs categories={categories} activeSlug={activeSlug} />
       </div>
       <div className="mt-6">
-        <ImageGrid images={images} />
+        {categoryNotFound ? (
+          <p className="text-zinc-600 dark:text-zinc-400">Category not found. Pick one of the categories above.</p>
+        ) : (
+          <ImageGrid images={images} />
+        )}
       </div>
     </>
   );

@@ -1,13 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ApiError: (await importOriginal<typeof import('@/lib/api')>()).ApiError,
   getCategories: vi.fn(),
   getCategoryImages: vi.fn(),
 }));
 
 import PortfolioGallery from './PortfolioGallery';
-import { getCategories, getCategoryImages } from '@/lib/api';
+import { ApiError, getCategories, getCategoryImages } from '@/lib/api';
 
 const categories = [
   { id: '1', slug: 'weddings', name: 'Weddings', displayOrder: 0 },
@@ -51,5 +52,16 @@ describe('PortfolioGallery', () => {
     render(await PortfolioGallery({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByText(/couldn.t load photos/i)).toBeInTheDocument();
+  });
+
+  it('keeps the category tabs and shows a not-found message for an unknown category', async () => {
+    (getCategories as ReturnType<typeof vi.fn>).mockResolvedValue(categories);
+    (getCategoryImages as ReturnType<typeof vi.fn>).mockRejectedValue(new ApiError('not found', 404));
+
+    render(await PortfolioGallery({ searchParams: Promise.resolve({ category: 'old-slug' }) }));
+
+    expect(screen.getByRole('link', { name: 'Weddings' })).toBeInTheDocument();
+    expect(screen.getByText(/category not found/i)).toBeInTheDocument();
+    expect(screen.queryByText(/couldn.t load photos/i)).not.toBeInTheDocument();
   });
 });
