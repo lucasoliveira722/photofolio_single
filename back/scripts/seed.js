@@ -3,14 +3,15 @@ import { join } from 'node:path';
 import { imageSize } from 'image-size';
 import { getSupabaseClient } from '../src/supabaseClient.js';
 import { IMAGE_BUCKET } from '../src/constants.js';
-import { parseArgs, buildSeedRows } from './seedPlan.js';
+import { parseArgs, buildSeedRows, nextCategoryOrder } from './seedPlan.js';
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const { category: slug, name, dir } = args;
 
-  if (!slug || !name || !dir) {
-    console.error('Usage: npm run seed -- --category=<slug> --name="<Display Name>" --dir=<path>');
+  if (!slug || !dir) {
+    console.error('Usage: npm run seed -- --category=<slug> --dir=<path> [--name="<Display Name>"]');
+    console.error('--name is required only when the category does not exist yet.');
     process.exitCode = 1;
     return;
   }
@@ -24,9 +25,24 @@ async function main() {
     .maybeSingle();
 
   if (!category) {
+    if (!name) {
+      console.error(`Category "${slug}" does not exist yet; pass --name="<Display Name>" to create it.`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const { data: existingCategories, error: ordersError } = await supabase
+      .from('categories')
+      .select('display_order');
+    if (ordersError) throw ordersError;
+
     const { data: created, error } = await supabase
       .from('categories')
-      .insert({ slug, name, display_order: 0 })
+      .insert({
+        slug,
+        name,
+        display_order: nextCategoryOrder(existingCategories.map((c) => c.display_order)),
+      })
       .select('id')
       .single();
     if (error) throw error;

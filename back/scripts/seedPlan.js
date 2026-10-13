@@ -27,3 +27,7 @@ export function buildSeedRows(categorySlug, files, { existingPaths = [] } = {}) 
       displayOrder: existing.size + index,
     }));
 }
+
+export function nextCategoryOrder(existingOrders) {
+  return existingOrders.length === 0 ? 0 : Math.max(...existingOrders) + 1;
+}
