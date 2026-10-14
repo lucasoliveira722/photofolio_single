@@ -10,7 +10,7 @@ export default function Home() {
         <FeaturedHero />
       </Suspense>
 
-      <section className="max-w-[600px] px-6 py-12 md:px-[60px]">
+      <section className="max-w-[600px] px-6 pb-12 pt-24 md:px-[60px]">
         <h1 className="mb-6 text-4xl leading-tight">Lucas Oliveira</h1>
         <p className="leading-[1.8] text-muted">
           I&apos;m a photographer capturing light, moments, and the in-between. Explore the
