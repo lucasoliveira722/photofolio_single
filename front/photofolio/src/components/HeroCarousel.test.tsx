@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import HeroCarousel from './HeroCarousel';
 import type { PortfolioImage } from '@/lib/api';
 
@@ -9,21 +9,68 @@ const images: PortfolioImage[] = [
 ];
 
 describe('HeroCarousel', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it('shows the first image initially', () => {
     render(<HeroCarousel images={images} />);
     expect(screen.getByAltText('First')).toBeInTheDocument();
+    expect(screen.getByText('01 / 02')).toBeInTheDocument();
   });
 
   it('advances to the next image on Next click', () => {
     render(<HeroCarousel images={images} />);
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByAltText('Second')).toBeInTheDocument();
+    expect(screen.getByText('02 / 02')).toBeInTheDocument();
   });
 
   it('wraps around to the last image when Previous is clicked on the first image', () => {
     render(<HeroCarousel images={images} />);
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
-    expect(screen.getByAltText('Second')).toBeInTheDocument();
+    expect(screen.getByText('02 / 02')).toBeInTheDocument();
+  });
+
+  it('jumps to a photo when its dot is clicked', () => {
+    render(<HeroCarousel images={images} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Go to photo 2' }));
+    expect(screen.getByText('02 / 02')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go to photo 2' })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('auto-advances every 5 seconds', () => {
+    vi.useFakeTimers();
+    render(<HeroCarousel images={images} />);
+
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByText('02 / 02')).toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByText('01 / 02')).toBeInTheDocument();
+  });
+
+  it('pauses auto-advance while hovered', () => {
+    vi.useFakeTimers();
+    render(<HeroCarousel images={images} />);
+    const carousel = screen.getByRole('region', { name: 'Featured photos' });
+
+    fireEvent.mouseEnter(carousel);
+    act(() => vi.advanceTimersByTime(10000));
+    expect(screen.getByText('01 / 02')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(carousel);
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByText('02 / 02')).toBeInTheDocument();
+  });
+
+  it('does not auto-advance when the user prefers reduced motion', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') }));
+    render(<HeroCarousel images={images} />);
+
+    act(() => vi.advanceTimersByTime(10000));
+    expect(screen.getByText('01 / 02')).toBeInTheDocument();
   });
 
   it('renders nothing when there are no images', () => {

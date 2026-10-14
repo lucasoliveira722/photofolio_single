@@ -30,17 +30,17 @@ export default async function PortfolioGallery({ searchParams }: PortfolioGaller
   }
 
   if (loadError) {
-    return <p className="mt-4 text-red-600">Couldn&apos;t load photos right now.</p>;
+    return <p className="mt-6 text-muted">Couldn&apos;t load photos right now.</p>;
   }
 
   return (
     <>
-      <div className="mt-6">
+      <div className="mt-8">
         <CategoryTabs categories={categories} activeSlug={activeSlug} />
       </div>
-      <div className="mt-6">
+      <div className="mt-8">
         {categoryNotFound ? (
-          <p className="text-zinc-600 dark:text-zinc-400">Category not found. Pick one of the categories above.</p>
+          <p className="text-muted">Category not found. Pick one of the categories above.</p>
         ) : (
           <ImageGrid images={images} />
         )}

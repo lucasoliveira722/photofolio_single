@@ -66,45 +66,58 @@ export default function Lightbox({ images, index, onClose, onNavigate }: Lightbo
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+      aria-label={image.title || 'Photo'}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/[0.92]"
       onClick={onClose}
     >
       <div
-        className="flex max-h-full max-w-4xl flex-col items-center gap-4"
+        className="grid max-h-[90vh] w-[95vw] max-w-[1100px] grid-rows-[1fr_auto] bg-[#111] md:grid-cols-[1fr_280px] md:grid-rows-1"
         onClick={(event) => event.stopPropagation()}
       >
-        <Image
-          src={image.url}
-          alt={image.title || image.description || ''}
-          width={image.width}
-          height={image.height}
-          sizes="(max-width: 896px) 100vw, 896px"
-          className="max-h-[75vh] w-auto object-contain"
-        />
-        <div className="text-center text-white">
-          <h2 className="text-lg font-semibold">{image.title}</h2>
-          {image.description && <p className="text-sm text-zinc-300">{image.description}</p>}
-        </div>
-        <div className="flex gap-4">
+        <div className="relative h-[60vh] bg-[#0a0a0a] md:h-[85vh]">
+          <Image
+            src={image.url}
+            alt={image.title || image.description || ''}
+            fill
+            sizes="(min-width: 768px) 820px, 95vw"
+            className="object-contain"
+          />
           <button
             type="button"
             disabled={index === 0}
             onClick={() => onNavigate(index - 1)}
-            className="rounded bg-white/10 px-4 py-2 text-white disabled:opacity-30"
+            aria-label="Previous"
+            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 px-3 py-4 text-[28px] leading-none text-white/40 transition-colors hover:text-white/90 disabled:invisible"
           >
-            Previous
-          </button>
-          <button ref={closeButtonRef} type="button" onClick={onClose} className="rounded bg-white/10 px-4 py-2 text-white">
-            Close
+            ‹
           </button>
           <button
             type="button"
             disabled={index === images.length - 1}
             onClick={() => onNavigate(index + 1)}
-            className="rounded bg-white/10 px-4 py-2 text-white disabled:opacity-30"
+            aria-label="Next"
+            className="absolute right-0 top-1/2 z-10 -translate-y-1/2 px-3 py-4 text-[28px] leading-none text-white/40 transition-colors hover:text-white/90 disabled:invisible"
           >
-            Next
+            ›
           </button>
+        </div>
+        <div className="flex flex-col overflow-y-auto border-t border-white/[0.06] p-4 md:border-l md:border-t-0 md:px-6 md:py-8">
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="mb-2 self-end text-base text-white/40 transition-colors hover:text-white md:mb-6"
+          >
+            ✕
+          </button>
+          {image.title && <h2 className="mb-3 text-xl leading-snug text-[#e8e4e0]">{image.title}</h2>}
+          {image.description && (
+            <p className="flex-1 text-xs leading-[1.7] text-white/50">{image.description}</p>
+          )}
+          <p className="mt-6 text-[10px] tracking-[0.15em] text-white/40">
+            {index + 1} / {images.length}
+          </p>
         </div>
       </div>
     </div>

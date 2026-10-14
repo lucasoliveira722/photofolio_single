@@ -14,10 +14,11 @@ describe('Home page', () => {
     expect(screen.getByTestId('featured-hero')).toBeInTheDocument();
   });
 
-  it('always renders the about section and navigation', () => {
+  it('always renders the about section with contact links', () => {
     render(<Home />);
 
-    expect(screen.getByRole('heading', { name: 'About' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Portfolio' })).toHaveAttribute('href', '/portfolio');
+    expect(screen.getByRole('heading', { level: 1, name: 'Lucas Oliveira' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Email' })).toHaveAttribute('href', 'mailto:you@example.com');
+    expect(screen.getByRole('link', { name: 'Instagram' })).toBeInTheDocument();
   });
 });

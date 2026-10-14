@@ -16,7 +16,7 @@ export default async function FeaturedHero() {
   }
 
   if (loadError) {
-    return <p className="text-red-600">Couldn&apos;t load photos right now.</p>;
+    return <p className="px-6 py-20 text-muted md:px-[60px]">Couldn&apos;t load photos right now.</p>;
   }
 
   return <HeroCarousel images={featuredImages} />;

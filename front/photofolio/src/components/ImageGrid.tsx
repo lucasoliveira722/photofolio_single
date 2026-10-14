@@ -14,21 +14,21 @@ export default function ImageGrid({ images }: ImageGridProps) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+      <div className="columns-1 gap-2 min-[600px]:columns-2 min-[900px]:columns-3">
         {images.map((image, index) => (
           <button
             key={image.id}
             type="button"
             onClick={() => setOpenIndex(index)}
-            className="relative aspect-square overflow-hidden rounded"
+            className="group mb-2 block w-full break-inside-avoid overflow-hidden"
           >
             <Image
               src={image.url}
               alt={image.title || image.description || ''}
               width={image.width}
               height={image.height}
-              className="h-full w-full object-cover"
-              sizes="(max-width: 768px) 50vw, 25vw"
+              className="block h-auto w-full transition-opacity duration-200 group-hover:opacity-[0.88]"
+              sizes="(min-width: 900px) 33vw, (min-width: 600px) 50vw, 100vw"
             />
           </button>
         ))}

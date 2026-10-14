@@ -69,12 +69,13 @@ describe('Lightbox', () => {
     const close = screen.getByRole('button', { name: 'Close' });
     const next = screen.getByRole('button', { name: 'Next' });
 
-    next.focus();
+    // Previous is disabled on the first image, so Next and Close are the first and last stops.
+    close.focus();
     fireEvent.keyDown(window, { key: 'Tab' });
-    expect(close).toHaveFocus();
+    expect(next).toHaveFocus();
 
     fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
-    expect(next).toHaveFocus();
+    expect(close).toHaveFocus();
   });
 
   it('locks page scroll while open and restores it on close', () => {

@@ -1,56 +1,133 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Lightbox from './Lightbox';
 import type { PortfolioImage } from '@/lib/api';
+
+const AUTO_ADVANCE_MS = 5000;
 
 type HeroCarouselProps = {
   images: PortfolioImage[];
 };
 
+function pad(n: number) {
+  return String(n).padStart(2, '0');
+}
+
 export default function HeroCarousel({ images }: HeroCarouselProps) {
   const [index, setIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [paused, setPaused] = useState(false);
+  const count = images.length;
 
-  if (images.length === 0) return null;
+  // Restarts on every slide change, so a manual change also gets the full interval.
+  useEffect(() => {
+    if (count < 2 || paused || lightboxIndex !== null) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    const timer = setTimeout(() => setIndex((current) => (current + 1) % count), AUTO_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [index, count, paused, lightboxIndex]);
+
+  if (count === 0) return null;
 
   const image = images[index];
 
   function showPrevious() {
-    setIndex((current) => (current === 0 ? images.length - 1 : current - 1));
+    setIndex((current) => (current - 1 + count) % count);
   }
 
   function showNext() {
-    setIndex((current) => (current === images.length - 1 ? 0 : current + 1));
+    setIndex((current) => (current + 1) % count);
   }
 
   return (
-    <div className="relative w-full">
-      <button
-        type="button"
-        onClick={() => setLightboxIndex(index)}
-        className="relative block aspect-video w-full overflow-hidden rounded"
-      >
-        <Image
-          src={image.url}
-          alt={image.title || image.description || ''}
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw"
-        />
-      </button>
-      {images.length > 1 && (
-        <div className="mt-2 flex justify-center gap-4">
-          <button type="button" onClick={showPrevious} className="rounded bg-black/10 px-3 py-1">
-            Previous
-          </button>
-          <button type="button" onClick={showNext} className="rounded bg-black/10 px-3 py-1">
-            Next
-          </button>
+    <section
+      aria-roledescription="carousel"
+      aria-label="Featured photos"
+      className="relative h-dvh w-full overflow-hidden bg-ink"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+      }}
+    >
+      {images.map((slide, i) => (
+        <button
+          key={slide.id}
+          type="button"
+          onClick={() => setLightboxIndex(i)}
+          aria-hidden={i !== index}
+          inert={i !== index}
+          className={`absolute inset-0 block transition-opacity duration-800 ease-in-out motion-reduce:transition-none ${
+            i === index ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <Image
+            src={slide.url}
+            alt={slide.title || slide.description || ''}
+            fill
+            priority={i === 0}
+            className="object-cover"
+            sizes="(min-width: 768px) calc(100vw - 220px), 100vw"
+          />
+        </button>
+      ))}
+
+      <div className="pointer-events-none absolute inset-0 flex flex-col justify-end bg-[linear-gradient(to_top,rgba(0,0,0,0.45)_0%,transparent_50%)] px-6 py-8 sm:px-10">
+        <div className="mb-5 flex flex-col gap-1">
+          {count > 1 && (
+            <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
+              {pad(index + 1)} / {pad(count)}
+            </span>
+          )}
+          {image.title && <span className="font-serif text-2xl text-white">{image.title}</span>}
         </div>
+        {count > 1 && (
+          <div className="pointer-events-auto -ml-1.5 flex">
+            {images.map((slide, i) => (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setIndex(i)}
+                aria-label={`Go to photo ${i + 1}`}
+                aria-current={i === index ? 'true' : undefined}
+                className="p-1.5"
+              >
+                <span
+                  className={`block size-[5px] rounded-full transition-colors ${
+                    i === index ? 'bg-white/90' : 'bg-white/35'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {count > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={showPrevious}
+            aria-label="Previous"
+            className="absolute left-2 top-1/2 z-10 -translate-y-1/2 p-4 text-[32px] leading-none text-white/50 transition-colors hover:text-white/90"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={showNext}
+            aria-label="Next"
+            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 p-4 text-[32px] leading-none text-white/50 transition-colors hover:text-white/90"
+          >
+            ›
+          </button>
+        </>
       )}
+
       {lightboxIndex !== null && (
         <Lightbox
           images={images}
@@ -59,6 +136,6 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
           onNavigate={setLightboxIndex}
         />
       )}
-    </div>
+    </section>
   );
 }

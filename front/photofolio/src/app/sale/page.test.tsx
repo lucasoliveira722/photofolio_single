@@ -3,13 +3,9 @@ import { describe, it, expect } from 'vitest';
 import SalePage from './page';
 
 describe('Sale page', () => {
-  it('renders a coming-soon message', () => {
+  it('renders a coming-soon message for prints', () => {
     render(<SalePage />);
     expect(screen.getByRole('heading', { name: /coming soon/i })).toBeInTheDocument();
-  });
-
-  it('links back to the landing page', () => {
-    render(<SalePage />);
-    expect(screen.getByRole('link', { name: 'Lucas Oliveira Fotografia' })).toHaveAttribute('href', '/');
+    expect(screen.getByText(/prints & editions/i)).toBeInTheDocument();
   });
 });

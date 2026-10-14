@@ -8,17 +8,15 @@ type CategoryTabsProps = {
 
 export default function CategoryTabs({ categories, activeSlug }: CategoryTabsProps) {
   return (
-    <nav className="flex gap-2 overflow-x-auto" aria-label="Categories">
+    <nav className="flex gap-6 overflow-x-auto" aria-label="Categories">
       {categories.map((category) => (
         <Link
           key={category.id}
           href={`/portfolio?category=${category.slug}`}
           aria-current={category.slug === activeSlug ? 'page' : undefined}
-          className={
-            category.slug === activeSlug
-              ? 'rounded bg-black px-3 py-1 text-white dark:bg-white dark:text-black'
-              : 'rounded px-3 py-1 text-black dark:text-white'
-          }
+          className={`shrink-0 py-1.5 text-[10px] uppercase tracking-[0.18em] transition-colors hover:text-ink ${
+            category.slug === activeSlug ? 'text-ink' : 'text-muted'
+          }`}
         >
           {category.name}
         </Link>
