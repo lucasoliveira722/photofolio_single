@@ -30,7 +30,6 @@ export class ApiError extends Error {
   }
 }
 
-
 type CategoryRow = Pick<Tables<'categories'>, 'id' | 'slug' | 'name' | 'display_order'>;
 
 type ImageRow = Tables<'images'>;
