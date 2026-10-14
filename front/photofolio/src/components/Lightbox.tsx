@@ -101,7 +101,7 @@ export default function Lightbox({ images, index, onClose, onNavigate }: Lightbo
             ›
           </button>
         </div>
-        <div className="flex flex-col overflow-y-auto border-t border-white/[0.06] p-4 md:border-l md:border-t-0 md:px-6 md:py-8">
+        <div className="flex max-h-[30vh] flex-col overflow-y-auto border-t md:max-h-none border-white/[0.06] p-4 md:border-l md:border-t-0 md:px-6 md:py-8">
           <button
             ref={closeButtonRef}
             type="button"

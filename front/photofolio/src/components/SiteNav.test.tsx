@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/portfolio' }));
+const navigation = vi.hoisted(() => ({ pathname: '/portfolio' }));
+vi.mock('next/navigation', () => ({ usePathname: () => navigation.pathname }));
 
 import SiteNav from './SiteNav';
 
@@ -26,6 +27,23 @@ describe('SiteNav', () => {
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes the mobile menu when the backdrop is clicked', () => {
+    const { container } = render(<SiteNav />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    fireEvent.click(container.querySelector('[aria-hidden="true"]')!);
+    expect(screen.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes the mobile menu when the path changes some other way, e.g. Back', () => {
+    const { rerender } = render(<SiteNav />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+
+    navigation.pathname = '/sale';
+    rerender(<SiteNav />);
+    expect(screen.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
+    navigation.pathname = '/portfolio';
   });
 
   it('closes the mobile menu when a link is followed', () => {

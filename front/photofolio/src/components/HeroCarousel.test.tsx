@@ -64,6 +64,42 @@ describe('HeroCarousel', () => {
     expect(screen.getByText('02 / 02')).toBeInTheDocument();
   });
 
+  it('stays paused while focus is inside, even after the mouse leaves', () => {
+    vi.useFakeTimers();
+    render(<HeroCarousel images={images} />);
+    const carousel = screen.getByRole('region', { name: 'Featured photos' });
+
+    fireEvent.mouseEnter(carousel);
+    fireEvent.focus(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.mouseLeave(carousel);
+    act(() => vi.advanceTimersByTime(10000));
+    expect(screen.getByText('01 / 02')).toBeInTheDocument();
+  });
+
+  it('can be paused and resumed with the pause button', () => {
+    vi.useFakeTimers();
+    render(<HeroCarousel images={images} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pause slideshow' }));
+    // Clicking focuses the button; blur so only the user pause is in effect.
+    fireEvent.blur(screen.getByRole('button', { name: 'Play slideshow' }));
+    act(() => vi.advanceTimersByTime(10000));
+    expect(screen.getByText('01 / 02')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play slideshow' }));
+    fireEvent.blur(screen.getByRole('button', { name: 'Pause slideshow' }));
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByText('02 / 02')).toBeInTheDocument();
+  });
+
+  it('makes inactive slides inert and hidden from assistive tech', () => {
+    render(<HeroCarousel images={images} />);
+    const inactive = screen.getByAltText('Second').closest('button');
+    expect(inactive).toHaveAttribute('inert');
+    expect(inactive).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByAltText('First').closest('button')).not.toHaveAttribute('inert');
+  });
+
   it('does not auto-advance when the user prefers reduced motion', () => {
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') }));

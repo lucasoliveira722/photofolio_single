@@ -18,17 +18,19 @@ function pad(n: number) {
 export default function HeroCarousel({ images }: HeroCarouselProps) {
   const [index, setIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
   const count = images.length;
 
   // Restarts on every slide change, so a manual change also gets the full interval.
   useEffect(() => {
-    if (count < 2 || paused || lightboxIndex !== null) return;
+    if (count < 2 || hovered || focused || userPaused || lightboxIndex !== null) return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
 
     const timer = setTimeout(() => setIndex((current) => (current + 1) % count), AUTO_ADVANCE_MS);
     return () => clearTimeout(timer);
-  }, [index, count, paused, lightboxIndex]);
+  }, [index, count, hovered, focused, userPaused, lightboxIndex]);
 
   if (count === 0) return null;
 
@@ -47,11 +49,11 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
       aria-roledescription="carousel"
       aria-label="Featured photos"
       className="relative h-dvh w-full overflow-hidden bg-ink"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
       }}
     >
       {images.map((slide, i) => (
@@ -69,7 +71,7 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
             src={slide.url}
             alt={slide.title || slide.description || ''}
             fill
-            priority={i === 0}
+            preload={i === 0}
             className="object-cover"
             sizes="(min-width: 768px) calc(100vw - 220px), 100vw"
           />
@@ -86,7 +88,15 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
           {image.title && <span className="font-serif text-2xl text-white">{image.title}</span>}
         </div>
         {count > 1 && (
-          <div className="pointer-events-auto -ml-1.5 flex">
+          <div className="pointer-events-auto -ml-1.5 flex items-center">
+            <button
+              type="button"
+              onClick={() => setUserPaused((current) => !current)}
+              aria-label={userPaused ? 'Play slideshow' : 'Pause slideshow'}
+              className="mr-1 px-1.5 text-[10px] leading-none text-white/60 transition-colors hover:text-white/90"
+            >
+              {userPaused ? '▶' : '❚❚'}
+            </button>
             {images.map((slide, i) => (
               <button
                 key={slide.id}

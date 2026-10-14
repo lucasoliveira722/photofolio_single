@@ -12,6 +12,13 @@ const links = [
 export default function SiteNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const [lastPathname, setLastPathname] = useState(pathname);
+
+  // Close the drawer on any navigation, including Back/Forward.
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
+    setOpen(false);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -34,10 +41,13 @@ export default function SiteNav() {
       >
         {open ? '✕' : '☰'}
       </button>
+      {open && (
+        <div aria-hidden="true" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/20 md:hidden" />
+      )}
       <nav
         id="site-nav"
         aria-label="Main"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[220px] shrink-0 flex-col justify-between border-r border-line bg-paper px-6 pb-8 pt-16 transition-[transform,visibility] duration-250 ease-out md:visible md:sticky md:top-0 md:translate-x-0 md:pt-8 md:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[220px] shrink-0 flex-col justify-between border-r border-line bg-paper px-6 pb-8 pt-16 transition-[translate,visibility] duration-250 ease-out md:visible md:sticky md:top-0 md:translate-x-0 md:pt-8 md:shadow-none ${
           open ? 'visible translate-x-0 shadow-[4px_0_20px_rgba(0,0,0,0.08)]' : 'invisible -translate-x-full'
         }`}
       >
