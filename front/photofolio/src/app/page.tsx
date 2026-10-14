@@ -6,11 +6,11 @@ const contactLinkClass = 'text-[10px] uppercase tracking-[0.18em] text-muted tra
 export default function Home() {
   return (
     <>
-      <Suspense fallback={<div className="h-dvh w-full bg-ink" />}>
+      <Suspense fallback={<div className="h-[60dvh] min-h-[360px] w-full bg-ink" />}>
         <FeaturedHero />
       </Suspense>
 
-      <section className="max-w-[600px] px-6 py-20 md:px-[60px]">
+      <section className="max-w-[600px] px-6 py-12 md:px-[60px]">
         <h1 className="mb-6 text-4xl leading-tight">Lucas Oliveira</h1>
         <p className="leading-[1.8] text-muted">
           I&apos;m a photographer capturing light, moments, and the in-between. Explore the

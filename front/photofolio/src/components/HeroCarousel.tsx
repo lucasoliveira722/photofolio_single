@@ -48,7 +48,7 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
     <section
       aria-roledescription="carousel"
       aria-label="Featured photos"
-      className="relative h-dvh w-full overflow-hidden bg-ink"
+      className="relative h-[60dvh] min-h-[360px] w-full overflow-hidden bg-ink"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}
