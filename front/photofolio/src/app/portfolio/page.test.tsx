@@ -17,6 +17,6 @@ describe('Portfolio page', () => {
 
   it('links back to the landing page', () => {
     render(<PortfolioPage searchParams={Promise.resolve({})} />);
-    expect(screen.getByRole('link', { name: 'Your Name Photography' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Lucas Oliveira Fotografia' })).toHaveAttribute('href', '/');
   });
 });
