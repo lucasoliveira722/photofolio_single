@@ -63,16 +63,25 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
           onClick={() => setLightboxIndex(i)}
           aria-hidden={i !== index}
           inert={i !== index}
-          className={`absolute inset-0 block transition-opacity duration-800 ease-in-out motion-reduce:transition-none ${
+          className={`absolute inset-0 block overflow-hidden transition-opacity duration-800 ease-in-out motion-reduce:transition-none ${
             i === index ? 'opacity-100' : 'opacity-0'
           }`}
         >
+          {/* Blurred, darkened copy fills the space around photos whose shape doesn't match the hero. */}
+          <Image
+            src={slide.url}
+            alt=""
+            fill
+            aria-hidden
+            className="scale-110 object-cover blur-2xl brightness-50"
+            sizes="64px"
+          />
           <Image
             src={slide.url}
             alt={slide.title || slide.description || ''}
             fill
             preload={i === 0}
-            className="object-cover"
+            className="object-contain"
             sizes="(min-width: 768px) calc(100vw - 220px), 100vw"
           />
         </button>
