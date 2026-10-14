@@ -53,7 +53,7 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
       {items.length === 0 ? (
         <p className="text-muted">No photos in this category yet.</p>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext id="photo-grid" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map((image) => image.id)} strategy={rectSortingStrategy}>
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {items.map((image) => (

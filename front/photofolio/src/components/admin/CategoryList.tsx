@@ -56,7 +56,7 @@ export default function CategoryList({ categories, activeSlug }: CategoryListPro
     <aside className="flex flex-col gap-6">
       <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted">Categories</h2>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext id="category-list" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map((category) => category.id)} strategy={verticalListSortingStrategy}>
           <ul className="border-t border-line">
             {items.map((category) => (

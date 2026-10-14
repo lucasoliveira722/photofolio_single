@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/admin/auth', () => ({ requireAdmin: vi.fn() }));
+vi.mock('next/server', () => ({ connection: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('@/lib/admin/queries', () => ({ getAdminData: vi.fn() }));
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(() => {
@@ -16,6 +17,7 @@ import AdminDashboard from './AdminDashboard';
 import { requireAdmin } from '@/lib/admin/auth';
 import { getAdminData } from '@/lib/admin/queries';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 
 const searchParams = Promise.resolve({ category: 'weddings' });
 const category = { id: 'c1', slug: 'weddings', name: 'Weddings', displayOrder: 0, photoCount: 0 };
@@ -56,5 +58,14 @@ describe('AdminDashboard', () => {
 
     expect(screen.getByText('Create a category to start adding photos.')).toBeInTheDocument();
     expect(screen.queryByTestId('photo-manager')).not.toBeInTheDocument();
+  });
+
+  it('waits for the request before reading the session', async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({ ok: false, reason: 'not-admin' });
+    render(await AdminDashboard({ searchParams }));
+    expect(connection).toHaveBeenCalled();
+    expect(vi.mocked(connection).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(requireAdmin).mock.invocationCallOrder[0]
+    );
   });
 });

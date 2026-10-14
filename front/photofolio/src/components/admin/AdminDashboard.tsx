@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
 import { getAdminData } from '@/lib/admin/queries';
 import AdminHeader from './AdminHeader';
@@ -11,6 +12,8 @@ type AdminDashboardProps = {
 };
 
 export default async function AdminDashboard({ searchParams }: AdminDashboardProps) {
+  // Render at request time: the session read uses the clock (token expiry), which can't be prerendered.
+  await connection();
   const auth = await requireAdmin();
   if (!auth.ok) {
     if (auth.reason === 'signed-out') redirect('/login');

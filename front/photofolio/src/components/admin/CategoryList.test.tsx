@@ -90,4 +90,12 @@ describe('CategoryList', () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/admin'));
   });
+
+  it('uses stable drag-and-drop ids so server and browser HTML match', () => {
+    render(<CategoryList categories={categories} activeSlug="weddings" />);
+    expect(screen.getByRole('button', { name: 'Reorder Weddings' })).toHaveAttribute(
+      'aria-describedby',
+      'category-list'
+    );
+  });
 });

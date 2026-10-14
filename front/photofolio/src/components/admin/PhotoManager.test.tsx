@@ -62,4 +62,12 @@ describe('PhotoManager', () => {
     expect(screen.getByRole('dialog', { name: 'Edit photo' })).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toHaveValue('Second');
   });
+
+  it('uses stable drag-and-drop ids so server and browser HTML match', () => {
+    render(<PhotoManager category={category} categories={[category]} images={images} />);
+    expect(screen.getByRole('button', { name: 'Reorder First' })).toHaveAttribute(
+      'aria-describedby',
+      'photo-grid'
+    );
+  });
 });
