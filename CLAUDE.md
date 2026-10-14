@@ -23,6 +23,7 @@ npm run build   # next build
 npm run start   # next start (serve production build)
 npm run lint    # eslint (flat config in eslint.config.mjs)
 npm test        # vitest run
+npm run gen:types  # regenerate src/lib/database.types.ts from the live schema (needs `npx supabase login` once)
 ```
 
 Seed tooling, from `supabase/` (needs `.env` with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` — see `.env.example`):
@@ -33,6 +34,12 @@ npm install
 npm test
 npm run seed -- --category=<slug> --dir=<path> [--name="<Display Name>"]   # --name only when creating the category
 ```
+
+## Going live
+
+- Run `supabase/policies.sql` in the Supabase SQL editor before the site is public. Without it, row-level security is off and the publishable key shipped to the frontend can write to the tables. The script is safe to re-run.
+- The deployed frontend (e.g. Vercel, Root Directory `front/photofolio`) gets only `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. Never give it `SUPABASE_SERVICE_ROLE_KEY`; that key bypasses RLS and stays in `supabase/.env`.
+- After changing `schema.sql`, apply it to the project and run `npm run gen:types` in `front/photofolio` so `database.types.ts` matches.
 
 ## Frontend architecture (`front/photofolio`)
 
