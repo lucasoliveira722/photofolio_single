@@ -3,6 +3,8 @@
 **Date:** 2026-10-13
 **Status:** Approved for implementation planning
 
+> **Update:** the Express API described below was removed — see `2026-10-13-remove-express-api-design.md`.
+
 ## Purpose
 
 Build a public-facing website for a photographer: a landing page, a

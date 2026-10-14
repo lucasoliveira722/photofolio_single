@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository layout
 
-This is a two-part project with no shared tooling or build step between the parts — treat them as independent apps that happen to live side by side:
+Two independent parts with no shared tooling or build step:
 
-- `back/` — Express backend. Currently just a `package.json` with `express` as its only dependency; **there is no source file, entry point, or npm script yet**. Before running or extending it, check whether a server file (e.g. `index.js`) has been added since this doc was written.
-- `front/photofolio/` — Next.js frontend. This is the only part with real code so far, and it is its own git repository (has its own `.git`), separate from the repo root.
+- `front/photofolio/` — the Next.js site. It reads Supabase directly from server code via `src/lib/api.ts` (built on the server-only client in `src/lib/supabase.ts`), using the project's public anon/publishable key. There is no separate API server.
+- `supabase/` — database and content tooling, not deployed: `schema.sql` (tables), `policies.sql` (row-level security: public read, writes only via the service-role key), and the seed script that uploads photos. It is the only place the service-role key is used.
 
-There is no root-level `package.json`, workspace config, or shared CI — each half is built/run from its own directory.
+There is no root-level `package.json`, workspace config, or shared CI — each part is installed and run from its own directory.
 
 ## Commands
 
-All frontend commands run from `front/photofolio/`:
+Frontend, from `front/photofolio/` (needs `.env.local` with `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` — see `.env.example`):
 
 ```bash
 cd front/photofolio
@@ -22,15 +22,16 @@ npm run dev     # next dev — Turbopack dev server on http://localhost:3000
 npm run build   # next build
 npm run start   # next start (serve production build)
 npm run lint    # eslint (flat config in eslint.config.mjs)
+npm test        # vitest run
 ```
 
-There is no test script configured in the frontend yet.
-
-Backend, from `back/`:
+Seed tooling, from `supabase/` (needs `.env` with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` — see `.env.example`):
 
 ```bash
-cd back
-npm install   # only installs express; no app code to run yet
+cd supabase
+npm install
+npm test
+npm run seed -- --category=<slug> --dir=<path> [--name="<Display Name>"]   # --name only when creating the category
 ```
 
 ## Frontend architecture (`front/photofolio`)
