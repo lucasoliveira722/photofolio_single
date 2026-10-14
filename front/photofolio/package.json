@@ -11,6 +11,7 @@
     "gen:types": "npx supabase gen types typescript --project-id umwxhednhnxegmkrahis --schema public > src/lib/database.types.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.3",
     "next": "16.4.0",
     "react": "19.3.0",
