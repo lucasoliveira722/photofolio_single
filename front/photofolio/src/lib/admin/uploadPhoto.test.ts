@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { upload, remove } = vi.hoisted(() => ({ upload: vi.fn(), remove: vi.fn() }));
+const { upload, remove, getUser } = vi.hoisted(() => ({ upload: vi.fn(), remove: vi.fn(), getUser: vi.fn() }));
 vi.mock('@/lib/supabase-browser', () => ({
-  createSupabaseBrowserClient: () => ({ storage: { from: () => ({ upload, remove }) } }),
+  createSupabaseBrowserClient: () => ({ auth: { getUser }, storage: { from: () => ({ upload, remove }) } }),
 }));
 vi.mock('./shrinkImage', () => ({ shrinkImage: vi.fn() }));
 vi.mock('@/app/(admin)/admin/actions', () => ({ createImage: vi.fn() }));
@@ -27,6 +27,7 @@ describe('uploadPhoto', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(shrinkImage).mockResolvedValue({ blob: new Blob(['jpg']), width: 2560, height: 1707 });
+    getUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
     upload.mockResolvedValue({ error: null });
     remove.mockResolvedValue({ error: null });
   });
@@ -67,6 +68,24 @@ describe('uploadPhoto', () => {
     const result = await uploadPhoto(file, 'cat-1', vi.fn());
 
     expect(result).toEqual({ ok: false, error: 'Your session expired. Sign in again.', signedOut: true });
+    expect(remove).toHaveBeenCalledWith([upload.mock.calls[0][0]]);
+  });
+
+  it('reports an expired session before uploading anything', async () => {
+    getUser.mockResolvedValue({ data: { user: null }, error: { message: 'Auth session missing!' } });
+
+    expect(await uploadPhoto(file, 'cat-1', vi.fn())).toEqual({
+      ok: false,
+      error: 'Your session expired. Sign in again.',
+      signedOut: true,
+    });
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('removes the uploaded file and fails cleanly when saving throws', async () => {
+    vi.mocked(createImage).mockRejectedValue(new Error('Failed to fetch'));
+
+    expect(await uploadPhoto(file, 'cat-1', vi.fn())).toEqual({ ok: false, error: "Couldn't save the photo. Try again." });
     expect(remove).toHaveBeenCalledWith([upload.mock.calls[0][0]]);
   });
 });

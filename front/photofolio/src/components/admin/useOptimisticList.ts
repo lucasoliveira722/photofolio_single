@@ -6,21 +6,20 @@ import type { ActionResult } from '@/lib/admin/types';
 // A local copy of a server-provided list for optimistic updates. It resets
 // whenever the server sends a new list (after an action revalidates).
 export function useOptimisticList<T>(serverItems: T[]) {
-  const [items, setItems] = useState(serverItems);
-  const [source, setSource] = useState(serverItems);
+  // Kept together so a failed save can roll back to the latest server list,
+  // which already includes anything saved while this save was in flight.
+  const [state, setState] = useState({ source: serverItems, items: serverItems });
 
-  if (serverItems !== source) {
-    setSource(serverItems);
-    setItems(serverItems);
+  if (serverItems !== state.source) {
+    setState({ source: serverItems, items: serverItems });
   }
 
   async function update(next: T[], save: () => Promise<ActionResult>): Promise<ActionResult> {
-    const previous = items;
-    setItems(next);
+    setState((current) => ({ ...current, items: next }));
     const result = await save();
-    if (!result.ok) setItems(previous);
+    if (!result.ok) setState((current) => ({ ...current, items: current.source }));
     return result;
   }
 
-  return [items, update] as const;
+  return [state.items, update] as const;
 }

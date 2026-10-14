@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { uploadPhoto, validateFile, type UploadStatus } from '@/lib/admin/uploadPhoto';
-import type { ActionFailure } from '@/lib/admin/types';
+import type { ActionFailure, ActionResult } from '@/lib/admin/types';
 import ErrorNotice from './ErrorNotice';
 import { textButtonClass } from './styles';
 
@@ -30,9 +30,15 @@ export default function UploadQueue({ categoryId }: { categoryId: string }) {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...changes } : item)));
   }
 
-  async function run(item: QueueItem) {
-    const result = await uploadPhoto(item.file, categoryId, (status) => patch(item.id, { status, failure: undefined }));
+  async function run(item: QueueItem): Promise<ActionResult> {
+    let result: ActionResult;
+    try {
+      result = await uploadPhoto(item.file, categoryId, (status) => patch(item.id, { status, failure: undefined }));
+    } catch {
+      result = { ok: false, error: "Couldn't upload this photo. Try again." };
+    }
     patch(item.id, result.ok ? { status: 'done' } : { status: 'failed', failure: result, retryable: true });
+    return result;
   }
 
   async function addFiles(fileList: FileList | File[]) {
@@ -49,8 +55,17 @@ export default function UploadQueue({ categoryId }: { categoryId: string }) {
     setItems((current) => [...current, ...added]);
 
     // One at a time keeps memory and bandwidth predictable for big batches.
-    for (const item of added) {
-      if (item.status !== 'failed') await run(item);
+    const pending = added.filter((item) => item.status !== 'failed');
+    for (const [index, item] of pending.entries()) {
+      const result = await run(item);
+      if (!result.ok && result.signedOut) {
+        // Every remaining file would fail the same way; mark them so they can be retried after signing in.
+        const rest = new Set(pending.slice(index + 1).map((other) => other.id));
+        setItems((current) =>
+          current.map((other) => (rest.has(other.id) ? { ...other, status: 'failed', failure: result, retryable: true } : other))
+        );
+        break;
+      }
     }
   }
 

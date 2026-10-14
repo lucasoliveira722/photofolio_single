@@ -75,4 +75,26 @@ describe('UploadQueue', () => {
 
     expect(screen.queryByText('a.jpg')).not.toBeInTheDocument();
   });
+
+  it('keeps going when an upload throws, and offers a retry', async () => {
+    vi.mocked(uploadPhoto).mockRejectedValueOnce(new Error('Failed to fetch')).mockResolvedValueOnce({ ok: true });
+    render(<UploadQueue categoryId="cat-1" />);
+
+    choose([jpg('a.jpg'), jpg('b.jpg')]);
+
+    expect(await screen.findByText("Couldn't upload this photo. Try again.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('Done')).toHaveLength(1));
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  it('stops the batch when the session expires', async () => {
+    vi.mocked(uploadPhoto).mockResolvedValue({ ok: false, error: 'Your session expired. Sign in again.', signedOut: true });
+    render(<UploadQueue categoryId="cat-1" />);
+
+    choose([jpg('a.jpg'), jpg('b.jpg'), jpg('c.jpg')]);
+
+    await waitFor(() => expect(screen.getAllByRole('link', { name: 'Sign in' })).toHaveLength(3));
+    expect(uploadPhoto).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(3);
+  });
 });

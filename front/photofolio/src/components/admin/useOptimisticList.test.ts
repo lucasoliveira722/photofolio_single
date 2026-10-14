@@ -36,4 +36,26 @@ describe('useOptimisticList', () => {
     rerender({ items: ['a', 'c'] });
     expect(result.current[0]).toEqual(['a', 'c']);
   });
+
+  it('rolls back to the latest server list, keeping changes saved meanwhile', async () => {
+    let failSave: (result: { ok: false; error: string }) => void = () => {};
+    const { result, rerender } = renderHook(({ items }) => useOptimisticList(items), {
+      initialProps: { items: serverItems },
+    });
+
+    let pending: Promise<unknown> = Promise.resolve();
+    act(() => {
+      pending = result.current[1](['b', 'a'], () => new Promise((resolve) => (failSave = resolve)));
+    });
+    // Another action saved and revalidated while this save was in flight.
+    const afterOtherSave = ['a', 'b', 'c'];
+    rerender({ items: afterOtherSave });
+
+    await act(async () => {
+      failSave({ ok: false, error: 'nope' });
+      await pending;
+    });
+
+    expect(result.current[0]).toEqual(['a', 'b', 'c']);
+  });
 });
