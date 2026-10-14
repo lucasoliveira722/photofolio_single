@@ -16,6 +16,19 @@ describe('getSupabase', () => {
     );
   });
 
+  it.each([
+    ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY'],
+    ['SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_URL'],
+  ])('throws when only %s is missing', async (missing, present) => {
+    vi.stubEnv(missing, '');
+    vi.stubEnv(present, present === 'SUPABASE_URL' ? 'https://example.supabase.co' : 'test-key');
+    const { getSupabase } = await import('./supabase');
+
+    expect(() => getSupabase()).toThrow(
+      'Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY environment variables'
+    );
+  });
+
   it('returns one shared client when env vars are present', async () => {
     vi.stubEnv('SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', 'test-key');
