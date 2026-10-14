@@ -83,12 +83,35 @@ export type Database = {
           },
         ]
       }
+      admins: {
+        Row: {
+          user_id: string
+        }
+        Insert: {
+          user_id: string
+        }
+        Update: {
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      reorder_categories: {
+        Args: { ids: string[] }
+        Returns: undefined
+      }
+      reorder_images: {
+        Args: { ids: string[] }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

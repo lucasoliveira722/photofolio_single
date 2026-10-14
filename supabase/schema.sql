@@ -20,3 +20,7 @@ create table images (
 );
 
 create index images_category_id_idx on images(category_id);
+
+create table admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
