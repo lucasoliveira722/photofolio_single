@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase';
+import { IMAGE_BUCKET } from './storage';
 import type { Tables } from './database.types';
 
 export type Category = {
@@ -29,7 +30,6 @@ export class ApiError extends Error {
   }
 }
 
-const IMAGE_BUCKET = 'portfolio-images';
 
 type CategoryRow = Pick<Tables<'categories'>, 'id' | 'slug' | 'name' | 'display_order'>;
 
