@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase';
+import type { Tables } from './database.types';
 
 export type Category = {
   id: string;
@@ -30,23 +31,9 @@ export class ApiError extends Error {
 
 const IMAGE_BUCKET = 'portfolio-images';
 
-type CategoryRow = {
-  id: string;
-  slug: string;
-  name: string;
-  display_order: number;
-};
+type CategoryRow = Pick<Tables<'categories'>, 'id' | 'slug' | 'name' | 'display_order'>;
 
-type ImageRow = {
-  id: string;
-  storage_path: string;
-  title: string;
-  description: string | null;
-  display_order: number;
-  is_featured: boolean;
-  width: number;
-  height: number;
-};
+type ImageRow = Tables<'images'>;
 
 function mapCategory(row: CategoryRow): Category {
   return {
@@ -82,7 +69,7 @@ export async function getCategories(): Promise<Category[]> {
     .order('display_order', { ascending: true });
 
   if (error) loadFailed('categories', error);
-  return ((data ?? []) as CategoryRow[]).map(mapCategory);
+  return (data ?? []).map(mapCategory);
 }
 
 export async function getCategoryImages(slug: string): Promise<PortfolioImage[]> {
@@ -104,7 +91,7 @@ export async function getCategoryImages(slug: string): Promise<PortfolioImage[]>
     .order('display_order', { ascending: true });
 
   if (error) loadFailed('images', error);
-  return ((data ?? []) as ImageRow[]).map(mapImage);
+  return (data ?? []).map(mapImage);
 }
 
 export async function getFeaturedImages(): Promise<PortfolioImage[]> {
@@ -115,5 +102,5 @@ export async function getFeaturedImages(): Promise<PortfolioImage[]> {
     .order('display_order', { ascending: true });
 
   if (error) loadFailed('featured images', error);
-  return ((data ?? []) as ImageRow[]).map(mapImage);
+  return (data ?? []).map(mapImage);
 }

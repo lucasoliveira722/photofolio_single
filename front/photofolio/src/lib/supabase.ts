@@ -1,9 +1,10 @@
 import 'server-only';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 
-let client: SupabaseClient | undefined;
+let client: SupabaseClient<Database> | undefined;
 
-export function getSupabase(): SupabaseClient {
+export function getSupabase(): SupabaseClient<Database> {
   if (client) return client;
 
   const url = process.env.SUPABASE_URL;
@@ -13,6 +14,6 @@ export function getSupabase(): SupabaseClient {
     throw new Error('Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY environment variables');
   }
 
-  client = createClient(url, key, { auth: { persistSession: false } });
+  client = createClient<Database>(url, key, { auth: { persistSession: false } });
   return client;
 }
