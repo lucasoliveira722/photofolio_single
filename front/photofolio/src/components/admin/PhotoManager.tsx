@@ -9,6 +9,7 @@ import type { ActionFailure, AdminCategory, AdminImage } from '@/lib/admin/types
 import EditPanel from './EditPanel';
 import ErrorNotice from './ErrorNotice';
 import PhotoCard from './PhotoCard';
+import UploadQueue from './UploadQueue';
 import { useOptimisticList } from './useOptimisticList';
 
 type PhotoManagerProps = {
@@ -44,6 +45,8 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
   return (
     <section className="flex min-w-0 flex-col gap-6">
       <h1 className="text-3xl leading-tight">{category.name}</h1>
+
+      <UploadQueue categoryId={category.id} />
 
       <ErrorNotice failure={failure} />
 

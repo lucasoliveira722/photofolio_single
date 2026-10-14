@@ -8,6 +8,7 @@ vi.mock('@/app/(admin)/admin/actions', () => ({
   updateImage: vi.fn(),
   deleteImage: vi.fn(),
 }));
+vi.mock('./UploadQueue', () => ({ default: () => <div data-testid="upload-queue" /> }));
 
 import PhotoManager from './PhotoManager';
 import { setFeatured } from '@/app/(admin)/admin/actions';
