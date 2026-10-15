@@ -118,4 +118,43 @@ describe('EditPanel', () => {
     fireEvent.click(backdrop);
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('reports a deleted photo and leaves focus to the photo grid', async () => {
+    vi.mocked(deleteImage).mockResolvedValue({ ok: true });
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const onClose = vi.fn();
+    const { unmount } = render(<EditPanel image={image} categories={categories} onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete photo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith({ message: 'Dunes deleted.' }));
+
+    unmount();
+    expect(opener).not.toHaveFocus();
+    opener.remove();
+  });
+
+  it('reports a photo moved to another category', async () => {
+    vi.mocked(updateImage).mockResolvedValue({ ok: true });
+    const onClose = vi.fn();
+    render(<EditPanel image={image} categories={categories} onClose={onClose} />);
+
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'c2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith({ message: 'Dunes moved to Portraits.' }));
+  });
+
+  it('closes without a report when the photo stays in its category', async () => {
+    vi.mocked(updateImage).mockResolvedValue({ ok: true });
+    const onClose = vi.fn();
+    render(<EditPanel image={image} categories={categories} onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith());
+  });
 });
+

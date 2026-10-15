@@ -25,10 +25,13 @@ function trapTab(event: KeyboardEvent, panel: HTMLElement) {
   }
 }
 
+// Set when the photo left this category's grid, so its card (and the focus target) is gone.
+export type EditOutcome = { message: string };
+
 type EditPanelProps = {
   image: AdminImage;
   categories: AdminCategory[];
-  onClose: () => void;
+  onClose: (outcome?: EditOutcome) => void;
 };
 
 export default function EditPanel({ image, categories, onClose }: EditPanelProps) {
@@ -38,12 +41,16 @@ export default function EditPanel({ image, categories, onClose }: EditPanelProps
   const panelRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const pressedOnBackdrop = useRef(false);
+  const leftGrid = useRef(false);
   // Captured during the first render, before the title takes focus.
   const [returnFocusTo] = useState(() => document.activeElement as HTMLElement | null);
 
   useEffect(() => {
     titleRef.current?.focus();
-    return () => returnFocusTo?.focus();
+    // A deleted or moved photo's card is gone; the photo manager moves focus instead.
+    return () => {
+      if (!leftGrid.current) returnFocusTo?.focus();
+    };
   }, [returnFocusTo]);
 
   useEffect(() => {
@@ -58,23 +65,26 @@ export default function EditPanel({ image, categories, onClose }: EditPanelProps
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const title = String(form.get('title'));
+    const categoryId = String(form.get('categoryId'));
     setPending(true);
-    const result = await updateImage(image.id, {
-      title: String(form.get('title')),
-      description: String(form.get('description')),
-      categoryId: String(form.get('categoryId')),
-    });
+    const result = await updateImage(image.id, { title, description: String(form.get('description')), categoryId });
     setPending(false);
-    if (result.ok) onClose();
-    else setFailure(result);
+    if (!result.ok) return setFailure(result);
+    if (categoryId === image.categoryId) return onClose();
+
+    const target = categories.find((category) => category.id === categoryId);
+    leftGrid.current = true;
+    onClose({ message: `${title.trim()} moved to ${target?.name ?? 'another category'}.` });
   }
 
   async function handleDelete() {
     setPending(true);
     const result = await deleteImage(image.id);
     setPending(false);
-    if (result.ok) onClose();
-    else setFailure(result);
+    if (!result.ok) return setFailure(result);
+    leftGrid.current = true;
+    onClose({ message: `${image.title} deleted.` });
   }
 
   return (
@@ -98,7 +108,7 @@ export default function EditPanel({ image, categories, onClose }: EditPanelProps
       >
         <div className="flex items-start justify-between">
           <h2 className="text-xl">Edit photo</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-muted hover:text-ink">✕</button>
+          <button type="button" onClick={() => onClose()} aria-label="Close" className="text-muted hover:text-ink">✕</button>
         </div>
 
         <div className="relative aspect-[4/3] bg-line">

@@ -11,7 +11,7 @@ vi.mock('@/app/(admin)/admin/actions', () => ({
 vi.mock('./UploadQueue', () => ({ default: () => <div data-testid="upload-queue" /> }));
 
 import PhotoManager from './PhotoManager';
-import { setFeatured } from '@/app/(admin)/admin/actions';
+import { deleteImage, setFeatured } from '@/app/(admin)/admin/actions';
 
 const category: AdminCategory = { id: 'c1', slug: 'weddings', name: 'Weddings', displayOrder: 0, photoCount: 2 };
 const images: AdminImage[] = [
@@ -70,4 +70,18 @@ describe('PhotoManager', () => {
       'photo-grid'
     );
   });
+
+  it('after deleting a photo, moves focus to the category heading and announces it', async () => {
+    vi.mocked(deleteImage).mockResolvedValue({ ok: true });
+    render(<PhotoManager category={category} categories={[category]} images={images} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Second' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete photo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'Weddings' })).toHaveFocus();
+    expect(screen.getByText('Second deleted.')).toHaveAttribute('role', 'status');
+  });
 });
+

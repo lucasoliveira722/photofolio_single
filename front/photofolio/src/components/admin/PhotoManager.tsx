@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { reorderImages, setFeatured } from '@/app/(admin)/admin/actions';
 import { moveId } from '@/lib/admin/reorder';
 import { sortableAnnouncements } from '@/lib/admin/announcements';
 import type { ActionFailure, AdminCategory, AdminImage } from '@/lib/admin/types';
-import EditPanel from './EditPanel';
+import EditPanel, { type EditOutcome } from './EditPanel';
 import ErrorNotice from './ErrorNotice';
 import PhotoCard from './PhotoCard';
 import UploadQueue from './UploadQueue';
@@ -23,6 +23,8 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
   const [items, update] = useOptimisticList(images);
   const [failure, setFailure] = useState<ActionFailure | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [status, setStatus] = useState('');
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const editing = items.find((image) => image.id === editingId) ?? null;
   const announcements = sortableAnnouncements((id) => items.find((image) => image.id === id)?.title ?? 'item');
   const sensors = useSensors(
@@ -44,9 +46,18 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
     setFailure(result.ok ? null : result);
   }
 
+  function closeEditor(outcome?: EditOutcome) {
+    setEditingId(null);
+    if (!outcome) return;
+    // The photo's card is gone; keep keyboard and screen-reader users in this category and say what happened.
+    setStatus(outcome.message);
+    headingRef.current?.focus();
+  }
+
   return (
     <section className="flex min-w-0 flex-col gap-6">
-      <h1 className="text-3xl leading-tight">{category.name}</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="text-3xl leading-tight focus:outline-none">{category.name}</h1>
+      <p role="status" className="sr-only">{status}</p>
 
       <UploadQueue category={category} />
 
@@ -77,7 +88,7 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
         </DndContext>
       )}
 
-      {editing && <EditPanel key={editing.id} image={editing} categories={categories} onClose={() => setEditingId(null)} />}
+      {editing && <EditPanel key={editing.id} image={editing} categories={categories} onClose={closeEditor} />}
     </section>
   );
 }
