@@ -1,11 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { updateImage, deleteImage } from '@/app/(admin)/admin/actions';
 import type { ActionFailure, AdminCategory, AdminImage } from '@/lib/admin/types';
 import ErrorNotice from './ErrorNotice';
 import { dangerTextButtonClass, inputClass, labelClass, primaryButtonClass, textButtonClass } from './styles';
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])';
+
+// Moves focus around the panel's ends so Tab never reaches the page behind it.
+function trapTab(event: KeyboardEvent, panel: HTMLElement) {
+  const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+  if (event.shiftKey && (active === first || !panel.contains(active))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (active === last || !panel.contains(active))) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 
 type EditPanelProps = {
   image: AdminImage;
@@ -17,10 +35,21 @@ export default function EditPanel({ image, categories, onClose }: EditPanelProps
   const [failure, setFailure] = useState<ActionFailure | null>(null);
   const [pending, setPending] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const pressedOnBackdrop = useRef(false);
+  // Captured during the first render, before the title takes focus.
+  const [returnFocusTo] = useState(() => document.activeElement as HTMLElement | null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+    return () => returnFocusTo?.focus();
+  }, [returnFocusTo]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
+      if (event.key === 'Tab' && panelRef.current) trapTab(event, panelRef.current);
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -49,13 +78,23 @@ export default function EditPanel({ image, categories, onClose }: EditPanelProps
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/20" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/20"
+      // Close only when the click both starts and ends on the backdrop, so a text selection
+      // dragged out of the panel doesn't close it and lose the edits.
+      onMouseDown={(event) => {
+        pressedOnBackdrop.current = event.target === event.currentTarget;
+      }}
+      onClick={(event) => {
+        if (pressedOnBackdrop.current && event.target === event.currentTarget) onClose();
+      }}
+    >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Edit photo"
         className="flex h-full w-full max-w-[380px] flex-col gap-5 overflow-y-auto border-l border-line bg-paper p-6"
-        onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between">
           <h2 className="text-xl">Edit photo</h2>
@@ -69,7 +108,7 @@ export default function EditPanel({ image, categories, onClose }: EditPanelProps
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           <div>
             <label htmlFor="edit-title" className={labelClass}>Title</label>
-            <input id="edit-title" name="title" defaultValue={image.title} required autoFocus className={inputClass} />
+            <input ref={titleRef} id="edit-title" name="title" defaultValue={image.title} required className={inputClass} />
           </div>
           <div>
             <label htmlFor="edit-description" className={labelClass}>Description</label>

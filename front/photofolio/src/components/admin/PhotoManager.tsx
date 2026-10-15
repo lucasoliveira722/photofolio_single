@@ -5,6 +5,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { reorderImages, setFeatured } from '@/app/(admin)/admin/actions';
 import { moveId } from '@/lib/admin/reorder';
+import { sortableAnnouncements } from '@/lib/admin/announcements';
 import type { ActionFailure, AdminCategory, AdminImage } from '@/lib/admin/types';
 import EditPanel from './EditPanel';
 import ErrorNotice from './ErrorNotice';
@@ -23,6 +24,7 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
   const [failure, setFailure] = useState<ActionFailure | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editing = items.find((image) => image.id === editingId) ?? null;
+  const announcements = sortableAnnouncements((id) => items.find((image) => image.id === id)?.title ?? 'item');
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -53,7 +55,13 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
       {items.length === 0 ? (
         <p className="text-muted">No photos in this category yet.</p>
       ) : (
-        <DndContext id="photo-grid" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext
+          id="photo-grid"
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          accessibility={{ announcements }}
+          onDragEnd={handleDragEnd}
+        >
           <SortableContext items={items.map((image) => image.id)} strategy={rectSortingStrategy}>
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {items.map((image) => (

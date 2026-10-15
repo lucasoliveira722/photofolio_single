@@ -72,4 +72,50 @@ describe('EditPanel', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('focuses the title on open and returns focus to where it was on close', () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+
+    const { unmount } = render(<EditPanel image={image} categories={categories} onClose={vi.fn()} />);
+    expect(screen.getByLabelText('Title')).toHaveFocus();
+
+    unmount();
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+
+  it('keeps Tab and Shift+Tab inside the panel', () => {
+    render(<EditPanel image={image} categories={categories} onClose={vi.fn()} />);
+    const close = screen.getByRole('button', { name: 'Close' });
+    const last = screen.getByRole('button', { name: 'Delete photo' });
+
+    last.focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(close).toHaveFocus();
+
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+    expect(last).toHaveFocus();
+  });
+
+  it('closes on a click on the backdrop', () => {
+    const onClose = vi.fn();
+    render(<EditPanel image={image} categories={categories} onClose={onClose} />);
+    const backdrop = screen.getByRole('dialog').parentElement!;
+
+    fireEvent.mouseDown(backdrop);
+    fireEvent.click(backdrop);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('stays open when a text selection inside the panel ends on the backdrop', () => {
+    const onClose = vi.fn();
+    render(<EditPanel image={image} categories={categories} onClose={onClose} />);
+    const backdrop = screen.getByRole('dialog').parentElement!;
+
+    fireEvent.mouseDown(screen.getByLabelText('Description'));
+    fireEvent.click(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

@@ -6,6 +6,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { createCategory, reorderCategories } from '@/app/(admin)/admin/actions';
 import { moveId } from '@/lib/admin/reorder';
+import { sortableAnnouncements } from '@/lib/admin/announcements';
 import type { ActionFailure, AdminCategory } from '@/lib/admin/types';
 import CategoryRow from './CategoryRow';
 import ErrorNotice from './ErrorNotice';
@@ -23,6 +24,7 @@ export default function CategoryList({ categories, activeSlug }: CategoryListPro
   const [failure, setFailure] = useState<ActionFailure | null>(null);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const announcements = sortableAnnouncements((id) => items.find((category) => category.id === id)?.name ?? 'item');
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -56,7 +58,13 @@ export default function CategoryList({ categories, activeSlug }: CategoryListPro
     <aside className="flex flex-col gap-6">
       <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted">Categories</h2>
 
-      <DndContext id="category-list" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        id="category-list"
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        accessibility={{ announcements }}
+        onDragEnd={handleDragEnd}
+      >
         <SortableContext items={items.map((category) => category.id)} strategy={verticalListSortingStrategy}>
           <ul className="border-t border-line">
             {items.map((category) => (
