@@ -46,7 +46,7 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
     <section className="flex min-w-0 flex-col gap-6">
       <h1 className="text-3xl leading-tight">{category.name}</h1>
 
-      <UploadQueue categoryId={category.id} />
+      <UploadQueue category={category} />
 
       <ErrorNotice failure={failure} />
 

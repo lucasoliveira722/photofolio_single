@@ -21,6 +21,11 @@ describe('validateFile', () => {
     expect(validateFile(huge)).toBe('File is larger than 50 MB.');
     expect(validateFile(file)).toBeNull();
   });
+
+  it('lets through image files the browser reports with no type (HEIC on Windows)', () => {
+    expect(validateFile(new File(['x'], 'IMG_0001.HEIC', { type: '' }))).toBeNull();
+    expect(validateFile(new File(['x'], 'notes', { type: '' }))).toBe('Not an image file.');
+  });
 });
 
 describe('uploadPhoto', () => {
@@ -48,7 +53,11 @@ describe('uploadPhoto', () => {
   it('fails clearly when the image cannot be decoded (shrink failure)', async () => {
     vi.mocked(shrinkImage).mockRejectedValue(new Error('decode failed'));
 
-    expect(await uploadPhoto(file, 'cat-1', vi.fn())).toEqual({ ok: false, error: "Couldn't read this image. Try a JPEG or PNG." });
+    expect(await uploadPhoto(file, 'cat-1', vi.fn())).toEqual({
+      ok: false,
+      error: "Couldn't read this image. Try a JPEG or PNG.",
+      permanent: true,
+    });
     expect(upload).not.toHaveBeenCalled();
   });
 
