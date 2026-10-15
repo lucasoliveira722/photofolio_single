@@ -16,6 +16,7 @@ import {
   setFeatured,
   reorderImages,
   deleteImage,
+  updateProfile,
 } from './actions';
 import { requireAdmin } from '@/lib/admin/auth';
 import { revalidatePath } from 'next/cache';
@@ -181,5 +182,47 @@ describe('admin actions', () => {
     expect(await deleteImage('img-1')).toEqual({ ok: true });
     expect(fake.storageCalls[0].args).toEqual([['photos/a.jpg']]);
     expect(fake.calls.at(-1)).toMatchObject({ table: 'images', op: 'delete' });
+  });
+
+  describe('updateProfile', () => {
+    const input = { bio: '  Olá, sou fotógrafo.  ', email: ' lucas@example.com ', instagram: '@lucas.foto' };
+
+    it('saves the trimmed bio, email, and bare Instagram handle', async () => {
+      const fake = asAdmin({ 'site_profile.update': [{ data: [{ id: true }], error: null }] });
+
+      expect(await updateProfile(input)).toEqual({
+        ok: true,
+        profile: { bio: 'Olá, sou fotógrafo.', email: 'lucas@example.com', instagram: 'lucas.foto' },
+      });
+      expect(fake.calls[0].chain).toEqual([
+        ['update', { bio: 'Olá, sou fotógrafo.', email: 'lucas@example.com', instagram: 'lucas.foto' }],
+        ['eq', 'id', true],
+        ['select', 'id'],
+      ]);
+      expect(revalidatePath).toHaveBeenCalledWith('/admin/profile');
+    });
+
+    it('allows clearing the email and Instagram', async () => {
+      asAdmin({ 'site_profile.update': [{ data: [{ id: true }], error: null }] });
+      expect(await updateProfile({ bio: 'Olá', email: ' ', instagram: '' })).toMatchObject({ ok: true });
+    });
+
+    it.each([
+      [{ ...input, email: 'lucas@example' }, 'Enter a valid email address.'],
+      [{ ...input, instagram: 'lucas foto' }, 'Enter an Instagram handle like @yourname.'],
+      [{ ...input, bio: 'a'.repeat(2001) }, 'The bio can be at most 2000 characters.'],
+    ])('rejects invalid input without writing', async (bad, error) => {
+      const fake = asAdmin();
+      expect(await updateProfile(bad)).toEqual({ ok: false, error });
+      expect(fake.calls).toHaveLength(0);
+    });
+
+    it('reports a failure when no row was updated', async () => {
+      asAdmin({ 'site_profile.update': [{ data: [], error: null }] });
+      expect(await updateProfile(input)).toEqual({
+        ok: false,
+        error: "Couldn't save the profile: the profile row is missing.",
+      });
+    });
   });
 });

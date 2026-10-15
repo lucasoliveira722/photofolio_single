@@ -5,6 +5,10 @@ vi.mock('@/components/FeaturedHero', () => ({
   default: () => <div data-testid="featured-hero" />,
 }));
 
+vi.mock('@/components/ProfileIntro', () => ({
+  default: () => <div data-testid="profile-intro" />,
+}));
+
 import Home from './page';
 
 describe('Home page', () => {
@@ -14,11 +18,10 @@ describe('Home page', () => {
     expect(screen.getByTestId('featured-hero')).toBeInTheDocument();
   });
 
-  it('always renders the about section with contact links', () => {
+  it('always renders the about section with the editable profile', () => {
     render(<Home />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Lucas Oliveira' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Email' })).toHaveAttribute('href', 'mailto:you@example.com');
-    expect(screen.getByRole('link', { name: 'Instagram' })).toBeInTheDocument();
+    expect(screen.getByTestId('profile-intro')).toBeInTheDocument();
   });
 });

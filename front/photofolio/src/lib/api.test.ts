@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('./supabase', () => ({ getSupabase: vi.fn() }));
 
-import { ApiError, getCategories, getCategoryImages, getFeaturedImages } from './api';
+import { ApiError, getCategories, getCategoryImages, getFeaturedImages, getProfile } from './api';
 import { getSupabase } from './supabase';
 
 type Result = { data: unknown; error: { message: string } | null };
@@ -202,5 +202,28 @@ describe('getFeaturedImages', () => {
     fakeSupabase({ images: { data: null, error: { message: 'db down' } } });
 
     await expect(getFeaturedImages()).rejects.toMatchObject({ status: 500 });
+  });
+});
+
+describe('getProfile', () => {
+  it('returns the single profile row', async () => {
+    const { queries } = fakeSupabase({
+      site_profile: { data: { bio: 'Olá', email: 'lucas@example.com', instagram: 'lucas.foto' }, error: null },
+    });
+
+    await expect(getProfile()).resolves.toEqual({ bio: 'Olá', email: 'lucas@example.com', instagram: 'lucas.foto' });
+    expect(queries.site_profile.calls).toContainEqual(['select', 'bio, email, instagram']);
+  });
+
+  it('returns an empty profile when the row is missing', async () => {
+    fakeSupabase({ site_profile: { data: null, error: null } });
+
+    await expect(getProfile()).resolves.toEqual({ bio: '', email: '', instagram: '' });
+  });
+
+  it('rejects with ApiError 500 when Supabase returns an error', async () => {
+    fakeSupabase({ site_profile: { data: null, error: { message: 'db down' } } });
+
+    await expect(getProfile()).rejects.toMatchObject({ status: 500 });
   });
 });

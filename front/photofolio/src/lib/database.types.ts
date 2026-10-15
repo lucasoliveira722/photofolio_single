@@ -95,6 +95,27 @@ export type Database = {
         }
         Relationships: []
       }
+      site_profile: {
+        Row: {
+          bio: string
+          email: string
+          id: boolean
+          instagram: string
+        }
+        Insert: {
+          bio?: string
+          email?: string
+          id?: boolean
+          instagram?: string
+        }
+        Update: {
+          bio?: string
+          email?: string
+          id?: boolean
+          instagram?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,6 +1,7 @@
 import { getSupabase } from './supabase';
 import { IMAGE_BUCKET } from './storage';
 import type { Tables } from './database.types';
+import { EMPTY_PROFILE, type Profile } from './profile';
 
 export type Category = {
   id: string;
@@ -102,4 +103,14 @@ export async function getFeaturedImages(): Promise<PortfolioImage[]> {
 
   if (error) loadFailed('featured images', error);
   return (data ?? []).map(mapImage);
+}
+
+export async function getProfile(): Promise<Profile> {
+  const { data, error } = await getSupabase()
+    .from('site_profile')
+    .select('bio, email, instagram')
+    .maybeSingle();
+
+  if (error) loadFailed('profile', error);
+  return data ?? EMPTY_PROFILE;
 }

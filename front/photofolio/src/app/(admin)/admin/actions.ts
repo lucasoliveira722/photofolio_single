@@ -8,6 +8,7 @@ import { slugify, uniqueSlug } from '@/lib/admin/slug';
 import { IMAGE_BUCKET } from '@/lib/storage';
 import { SIGNED_OUT_ERROR, type ActionResult } from '@/lib/admin/types';
 import type { Database } from '@/lib/database.types';
+import { BIO_MAX_LENGTH, isValidEmail, normalizeInstagram, type Profile } from '@/lib/profile';
 
 class ActionError extends Error {}
 
@@ -198,5 +199,27 @@ export async function deleteImage(id: string) {
     must(await supabase.storage.from(IMAGE_BUCKET).remove([image.storage_path]), 'delete the photo file');
     must(await supabase.from('images').delete().eq('id', id), 'delete the photo');
     return { ok: true };
+  });
+}
+
+export async function updateProfile(input: Profile) {
+  return withAdmin<{ profile: Profile }>(async (supabase) => {
+    const bio = input.bio.trim();
+    const email = input.email.trim();
+    const instagram = normalizeInstagram(input.instagram);
+    if (bio.length > BIO_MAX_LENGTH) return { ok: false, error: `The bio can be at most ${BIO_MAX_LENGTH} characters.` };
+    if (email && !isValidEmail(email)) return { ok: false, error: 'Enter a valid email address.' };
+    if (instagram === null) return { ok: false, error: 'Enter an Instagram handle like @yourname.' };
+
+    const profile = { bio, email, instagram };
+    const updated = mustHave(
+      await supabase.from('site_profile').update(profile).eq('id', true).select('id'),
+      'save the profile'
+    );
+    // An update blocked by row-level security (or a missing row) changes nothing without an error.
+    if (updated.length !== 1) throw new ActionError("Couldn't save the profile: the profile row is missing.");
+
+    revalidatePath('/admin/profile');
+    return { ok: true, profile };
   });
 }

@@ -10,6 +10,8 @@ export default function AdminHeader() {
         <span className="text-[9px] uppercase tracking-[0.2em] text-muted">Admin</span>
       </p>
       <nav className="flex items-center gap-6">
+        <Link href="/admin" className={textButtonClass}>Photos</Link>
+        <Link href="/admin/profile" className={textButtonClass}>Profile</Link>
         <Link href="/" className={textButtonClass}>View site</Link>
         <form action={signOut}>
           <button type="submit" className={textButtonClass}>Sign out</button>

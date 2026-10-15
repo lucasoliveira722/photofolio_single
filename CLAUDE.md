@@ -37,7 +37,7 @@ npm run seed -- --category=<slug> --dir=<path> [--name="<Display Name>"]   # --n
 
 ## Going live
 
-- In the Supabase SQL editor, run the `create table admins` statement from `supabase/schema.sql` if the table doesn't exist yet, then the whole `supabase/policies.sql`. Without the policies, row-level security is off and the publishable key shipped to the frontend can write. The policies script is safe to re-run.
+- In the Supabase SQL editor, run the `create table admins` and `create table site_profile` (plus its `insert`) statements from `supabase/schema.sql` if those tables don't exist yet, then the whole `supabase/policies.sql`. Without the policies, row-level security is off and the publishable key shipped to the frontend can write. The policies script is safe to re-run.
 - Create the photographer's account in Supabase → Authentication → Users, then insert its user id into `admins`. There is no sign-up page; that row is the only way to become an admin.
 - The deployed frontend (e.g. Vercel, Root Directory `front/photofolio`) gets only `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and the two `NEXT_PUBLIC_*` copies. Never give it `SUPABASE_SERVICE_ROLE_KEY`; that key bypasses RLS and stays in `supabase/.env`.
 - After changing `schema.sql`, apply it to the project and run `npm run gen:types` in `front/photofolio` so `database.types.ts` matches.
@@ -52,5 +52,6 @@ npm run seed -- --category=<slug> --dir=<path> [--name="<Display Name>"]   # --n
   - `experimental.agentFeedback: true`.
 - `AGENTS.md` in `front/photofolio/` is **auto-generated and re-written by `next dev`** (see `node_modules/next/dist/server/lib/generate-agent-files.js`). Its instruction: because this Next.js version may have breaking changes vs. training data, consult `node_modules/next/dist/docs/` before relying on prior Next.js knowledge for this project. Don't hand-edit that file's content expecting it to stick — removing it from a diff just re-creates the change on next `next dev` run; if it's checked in, commit it as-is.
 - Route groups: `src/app/(site)/` holds the public pages (with `SiteNav`); `src/app/(admin)/` holds `/login` and `/admin`. `src/proxy.ts` (Next 16's renamed middleware) refreshes the Supabase session only for those two. With Cache Components, anything that reads the session cookie must render inside `<Suspense>`.
+- The home page's bio, email, and Instagram live in the single-row `site_profile` table, edited at `/admin/profile`.
 - Admin writes go through `src/app/(admin)/admin/actions.ts`; each action calls `requireAdmin()` and returns `{ ok, error }` instead of throwing. Photo files are resized in the browser (`src/lib/admin/shrinkImage.ts`) and uploaded straight to Storage, because Vercel caps request bodies at about 4.5 MB.
 - ESLint uses the flat-config format (`eslint.config.mjs`) extending `eslint-config-next`'s `core-web-vitals` and `typescript` rule sets.

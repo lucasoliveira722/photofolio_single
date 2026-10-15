@@ -24,3 +24,13 @@ create index images_category_id_idx on images(category_id);
 create table admins (
   user_id uuid primary key references auth.users(id) on delete cascade
 );
+
+-- The home page's bio and contact links. Exactly one row (id is always true).
+create table site_profile (
+  id boolean primary key default true check (id),
+  bio text not null default '',
+  email text not null default '',
+  instagram text not null default ''
+);
+
+insert into site_profile default values on conflict do nothing;

@@ -5,6 +5,7 @@
 
 alter table categories enable row level security;
 alter table images enable row level security;
+alter table site_profile enable row level security;
 -- admins has no policies on purpose: it is readable only through is_admin().
 alter table admins enable row level security;
 
@@ -29,6 +30,12 @@ create policy "Public can read categories"
 drop policy if exists "Public can read images" on images;
 create policy "Public can read images"
   on images for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Public can read the site profile" on site_profile;
+create policy "Public can read the site profile"
+  on site_profile for select
   to anon, authenticated
   using (true);
 
@@ -71,6 +78,13 @@ create policy "Admin can delete images"
   on images for delete
   to authenticated
   using (public.is_admin());
+
+drop policy if exists "Admin can update the site profile" on site_profile;
+create policy "Admin can update the site profile"
+  on site_profile for update
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- Photo files (the bucket stays public for reads through public URLs)
 
