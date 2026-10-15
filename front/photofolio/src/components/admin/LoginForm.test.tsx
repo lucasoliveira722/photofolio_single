@@ -21,7 +21,10 @@ function submit(email: string, password: string) {
 }
 
 describe('LoginForm', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.history.replaceState(null, '', '/login');
+  });
 
   it('signs in and goes to the admin', async () => {
     signInWithPassword.mockResolvedValue({ error: null });
@@ -31,6 +34,24 @@ describe('LoginForm', () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/admin'));
     expect(signInWithPassword).toHaveBeenCalledWith({ email: 'me@example.com', password: 'secret' });
     expect(refresh).toHaveBeenCalled();
+  });
+
+  it('returns to the admin page in ?next= after signing in', async () => {
+    window.history.replaceState(null, '', '/login?next=%2Fadmin%3Fcategory%3Dweddings');
+    signInWithPassword.mockResolvedValue({ error: null });
+    render(<LoginForm />);
+    submit('me@example.com', 'secret');
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/admin?category=weddings'));
+  });
+
+  it('ignores a ?next= that leaves the admin', async () => {
+    window.history.replaceState(null, '', '/login?next=%2F%2Fevil.example');
+    signInWithPassword.mockResolvedValue({ error: null });
+    render(<LoginForm />);
+    submit('me@example.com', 'secret');
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/admin'));
   });
 
   it('shows a clear message for wrong credentials', async () => {

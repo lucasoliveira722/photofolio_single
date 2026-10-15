@@ -22,6 +22,14 @@ import { requireAdmin } from '@/lib/admin/auth';
 import { revalidatePath } from 'next/cache';
 import { SIGNED_OUT_ERROR } from '@/lib/admin/types';
 
+const CAT_1 = '11111111-1111-4111-8111-111111111111';
+const CAT_2 = '22222222-2222-4222-8222-222222222222';
+const IMG_1 = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const IMG_2 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+const changed = (id: string) => ({ data: [{ id }], error: null });
+const unchanged = { data: [], error: null };
+
 function asAdmin(results: Parameters<typeof fakeSupabase>[0] = {}) {
   const fake = fakeSupabase(results);
   vi.mocked(requireAdmin).mockResolvedValue({ ok: true, supabase: fake.client, userId: 'u1' });
@@ -34,13 +42,39 @@ describe('admin actions', () => {
   describe('authorization', () => {
     it('returns a signed-out error without writing when the session is gone', async () => {
       vi.mocked(requireAdmin).mockResolvedValue({ ok: false, reason: 'signed-out' });
-      expect(await setFeatured('img-1', true)).toEqual({ ok: false, error: SIGNED_OUT_ERROR, signedOut: true });
+      expect(await setFeatured(IMG_1, true)).toEqual({ ok: false, error: SIGNED_OUT_ERROR, signedOut: true });
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
     it('returns a not-authorized error for a non-admin account', async () => {
       vi.mocked(requireAdmin).mockResolvedValue({ ok: false, reason: 'not-admin' });
-      expect(await deleteImage('img-1')).toEqual({ ok: false, error: 'This account is not authorized.' });
+      expect(await deleteImage(IMG_1)).toEqual({ ok: false, error: 'This account is not authorized.' });
+    });
+
+    it('reports a failed account check as an error, not as not-authorized', async () => {
+      vi.mocked(requireAdmin).mockResolvedValue({ ok: false, reason: 'error', message: 'timeout' });
+      expect(await deleteImage(IMG_1)).toEqual({ ok: false, error: "Couldn't check your account: timeout" });
+    });
+  });
+
+  describe('input checks', () => {
+    it.each([
+      ['renameCategory', () => renameCategory('cat-1', 'Name')],
+      ['deleteCategory', () => deleteCategory('../x')],
+      ['reorderCategories', () => reorderCategories('nope' as unknown as string[])],
+      ['reorderCategories duplicates', () => reorderCategories([CAT_1, CAT_1])],
+      ['createCategory', () => createCategory(42 as unknown as string)],
+      ['createImage', () => createImage({ categoryId: 'x', storagePath: 'photos/a.jpg', title: 'A', width: 1, height: 1 })],
+      ['updateImage', () => updateImage(IMG_1, { title: 'A', description: null as unknown as string, categoryId: CAT_1 })],
+      ['setFeatured', () => setFeatured(IMG_1, 'yes' as unknown as boolean)],
+      ['reorderImages', () => reorderImages(CAT_1, [IMG_1, 7 as unknown as string])],
+      ['deleteImage', () => deleteImage('')],
+      ['updateProfile', () => updateProfile({ bio: 'a', email: undefined as unknown as string, instagram: '' })],
+    ])('%s rejects malformed input without touching the database', async (_name, call) => {
+      const fake = asAdmin();
+      expect(await call()).toEqual({ ok: false, error: 'Invalid request.' });
+      expect(fake.calls).toHaveLength(0);
+      expect(fake.rpcCalls).toHaveLength(0);
     });
   });
 
@@ -71,52 +105,84 @@ describe('admin actions', () => {
     });
   });
 
-  it('renames without touching the slug', async () => {
-    const fake = asAdmin();
-    expect(await renameCategory('cat-1', ' Portraits ')).toEqual({ ok: true });
-    expect(fake.calls[0].chain).toEqual([['update', { name: 'Portraits' }], ['eq', 'id', 'cat-1']]);
+  describe('renameCategory', () => {
+    it('renames without touching the slug', async () => {
+      const fake = asAdmin({ 'categories.update': [changed(CAT_1)] });
+      expect(await renameCategory(CAT_1, ' Portraits ')).toEqual({ ok: true });
+      expect(fake.calls[0].chain).toEqual([['update', { name: 'Portraits' }], ['eq', 'id', CAT_1], ['select', 'id']]);
+    });
+
+    it('reports a failure when nothing was renamed', async () => {
+      asAdmin({ 'categories.update': [unchanged] });
+      expect(await renameCategory(CAT_1, 'Portraits')).toEqual({
+        ok: false,
+        error: "Couldn't rename the category: nothing was changed. Reload and try again.",
+      });
+    });
   });
 
   describe('deleteCategory', () => {
-    it('deletes the photo files, then the category', async () => {
+    it('deletes the category, then its photo files', async () => {
       const fake = asAdmin({
         'images.select': [{ data: [{ storage_path: 'photos/a.jpg' }, { storage_path: 'photos/b.jpg' }], error: null }],
+        'categories.delete': [changed(CAT_1)],
       });
 
-      expect(await deleteCategory('cat-1')).toEqual({ ok: true });
-      expect(fake.storageCalls).toEqual([{ bucket: 'portfolio-images', method: 'remove', args: [['photos/a.jpg', 'photos/b.jpg']] }]);
+      expect(await deleteCategory(CAT_1)).toEqual({ ok: true });
       expect(fake.calls.at(-1)).toMatchObject({ table: 'categories', op: 'delete' });
+      expect(fake.storageCalls).toEqual([{ bucket: 'portfolio-images', method: 'remove', args: [['photos/a.jpg', 'photos/b.jpg']] }]);
     });
 
     it('skips storage for an empty category', async () => {
-      const fake = asAdmin({ 'images.select': [{ data: [], error: null }] });
-      await deleteCategory('cat-1');
+      const fake = asAdmin({ 'images.select': [{ data: [], error: null }], 'categories.delete': [changed(CAT_1)] });
+      await deleteCategory(CAT_1);
       expect(fake.storageCalls).toHaveLength(0);
     });
 
-    it('keeps the category when the files cannot be deleted', async () => {
+    it('keeps the files when the category could not be deleted', async () => {
       const fake = asAdmin({
         'images.select': [{ data: [{ storage_path: 'photos/a.jpg' }], error: null }],
+        'categories.delete': [unchanged],
+      });
+
+      expect(await deleteCategory(CAT_1)).toEqual({
+        ok: false,
+        error: "Couldn't delete the category: nothing was changed. Reload and try again.",
+      });
+      expect(fake.storageCalls).toHaveLength(0);
+    });
+
+    it('still succeeds when the leftover files cannot be removed', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      asAdmin({
+        'images.select': [{ data: [{ storage_path: 'photos/a.jpg' }], error: null }],
+        'categories.delete': [changed(CAT_1)],
         'storage.remove': [{ data: null, error: { message: 'denied' } }],
       });
 
-      expect(await deleteCategory('cat-1')).toEqual({ ok: false, error: "Couldn't delete the photo files: denied" });
-      expect(fake.calls.some((c) => c.op === 'delete')).toBe(false);
+      expect(await deleteCategory(CAT_1)).toEqual({ ok: true });
     });
   });
 
-  it('reorders categories and images through the SQL functions', async () => {
-    const fake = asAdmin();
-    await reorderCategories(['b', 'a']);
-    await reorderImages(['y', 'x']);
-    expect(fake.rpcCalls).toEqual([
-      { fn: 'reorder_categories', args: { ids: ['b', 'a'] } },
-      { fn: 'reorder_images', args: { ids: ['y', 'x'] } },
-    ]);
+  describe('reorderCategories', () => {
+    it('reorders through the SQL function', async () => {
+      const fake = asAdmin({ 'categories.select': [{ data: [{ id: CAT_1 }, { id: CAT_2 }], error: null }] });
+      expect(await reorderCategories([CAT_2, CAT_1])).toEqual({ ok: true });
+      expect(fake.rpcCalls).toEqual([{ fn: 'reorder_categories', args: { ids: [CAT_2, CAT_1] } }]);
+    });
+
+    it('refuses an order that does not list exactly the existing categories', async () => {
+      const fake = asAdmin({ 'categories.select': [{ data: [{ id: CAT_1 }, { id: CAT_2 }], error: null }] });
+      expect(await reorderCategories([CAT_1])).toEqual({
+        ok: false,
+        error: 'The categories changed since this page loaded. Reload and try again.',
+      });
+      expect(fake.rpcCalls).toHaveLength(0);
+    });
   });
 
   describe('createImage', () => {
-    const input = { categoryId: 'cat-1', storagePath: 'photos/abc.jpg', title: 'IMG_1', width: 2560, height: 1707 };
+    const input = { categoryId: CAT_1, storagePath: 'photos/abc.jpg', title: 'IMG_1', width: 2560, height: 1707 };
 
     it('inserts the photo at the end of its category', async () => {
       const fake = asAdmin({ 'images.select': [{ data: { display_order: 2 }, error: null }] });
@@ -125,7 +191,7 @@ describe('admin actions', () => {
       const insert = fake.calls.find((c) => c.op === 'insert');
       expect(insert?.chain[0]).toEqual([
         'insert',
-        { category_id: 'cat-1', storage_path: 'photos/abc.jpg', title: 'IMG_1', width: 2560, height: 1707, display_order: 3 },
+        { category_id: CAT_1, storage_path: 'photos/abc.jpg', title: 'IMG_1', width: 2560, height: 1707, display_order: 3 },
       ]);
     });
 
@@ -139,49 +205,114 @@ describe('admin actions', () => {
   describe('updateImage', () => {
     it('requires a title', async () => {
       asAdmin();
-      expect(await updateImage('img-1', { title: ' ', description: '', categoryId: 'cat-1' })).toEqual({
+      expect(await updateImage(IMG_1, { title: ' ', description: '', categoryId: CAT_1 })).toEqual({
         ok: false,
         error: 'Title is required.',
       });
     });
 
     it('saves title and description in the same category without changing the order', async () => {
-      const fake = asAdmin({ 'images.select': [{ data: { category_id: 'cat-1' }, error: null }] });
+      const fake = asAdmin({
+        'images.select': [{ data: { category_id: CAT_1 }, error: null }],
+        'images.update': [changed(IMG_1)],
+      });
 
-      await updateImage('img-1', { title: ' Dunes ', description: '  ', categoryId: 'cat-1' });
+      expect(await updateImage(IMG_1, { title: ' Dunes ', description: '  ', categoryId: CAT_1 })).toEqual({ ok: true });
       const update = fake.calls.find((c) => c.op === 'update');
-      expect(update?.chain[0]).toEqual(['update', { title: 'Dunes', description: null }]);
+      expect(update?.chain).toEqual([['update', { title: 'Dunes', description: null }], ['eq', 'id', IMG_1], ['select', 'id']]);
     });
 
     it('appends a moved photo to the end of the target category', async () => {
       const fake = asAdmin({
         'images.select': [
-          { data: { category_id: 'cat-1' }, error: null },
+          { data: { category_id: CAT_1 }, error: null },
           { data: { display_order: 7 }, error: null },
         ],
+        'images.update': [changed(IMG_1)],
       });
 
-      await updateImage('img-1', { title: 'Dunes', description: 'Sand', categoryId: 'cat-2' });
+      await updateImage(IMG_1, { title: 'Dunes', description: 'Sand', categoryId: CAT_2 });
       const update = fake.calls.find((c) => c.op === 'update');
       expect(update?.chain[0]).toEqual([
         'update',
-        { title: 'Dunes', description: 'Sand', category_id: 'cat-2', display_order: 8 },
+        { title: 'Dunes', description: 'Sand', category_id: CAT_2, display_order: 8 },
       ]);
+    });
+
+    it('reports a failure when nothing was saved', async () => {
+      asAdmin({ 'images.select': [{ data: { category_id: CAT_1 }, error: null }], 'images.update': [unchanged] });
+      expect(await updateImage(IMG_1, { title: 'Dunes', description: '', categoryId: CAT_1 })).toMatchObject({ ok: false });
     });
   });
 
-  it('sets the featured flag', async () => {
-    const fake = asAdmin();
-    await setFeatured('img-1', true);
-    expect(fake.calls[0].chain).toEqual([['update', { is_featured: true }], ['eq', 'id', 'img-1']]);
+  describe('setFeatured', () => {
+    it('sets the featured flag', async () => {
+      const fake = asAdmin({ 'images.update': [changed(IMG_1)] });
+      expect(await setFeatured(IMG_1, true)).toEqual({ ok: true });
+      expect(fake.calls[0].chain).toEqual([['update', { is_featured: true }], ['eq', 'id', IMG_1], ['select', 'id']]);
+    });
+
+    it('reports a failure when nothing was updated', async () => {
+      asAdmin({ 'images.update': [unchanged] });
+      expect(await setFeatured(IMG_1, true)).toEqual({
+        ok: false,
+        error: "Couldn't update the photo: nothing was changed. Reload and try again.",
+      });
+    });
   });
 
-  it('deletes the photo file, then its row', async () => {
-    const fake = asAdmin({ 'images.select': [{ data: { storage_path: 'photos/a.jpg' }, error: null }] });
+  describe('reorderImages', () => {
+    it("reorders the category's photos through the SQL function", async () => {
+      const fake = asAdmin({ 'images.select': [{ data: [{ id: IMG_1 }, { id: IMG_2 }], error: null }] });
 
-    expect(await deleteImage('img-1')).toEqual({ ok: true });
-    expect(fake.storageCalls[0].args).toEqual([['photos/a.jpg']]);
-    expect(fake.calls.at(-1)).toMatchObject({ table: 'images', op: 'delete' });
+      expect(await reorderImages(CAT_1, [IMG_2, IMG_1])).toEqual({ ok: true });
+      expect(fake.calls[0].chain).toContainEqual(['eq', 'category_id', CAT_1]);
+      expect(fake.rpcCalls).toEqual([{ fn: 'reorder_images', args: { ids: [IMG_2, IMG_1] } }]);
+    });
+
+    it('refuses ids that are not exactly the photos of that category', async () => {
+      const fake = asAdmin({ 'images.select': [{ data: [{ id: IMG_1 }], error: null }] });
+
+      expect(await reorderImages(CAT_1, [IMG_2, IMG_1])).toEqual({
+        ok: false,
+        error: 'The photos changed since this page loaded. Reload and try again.',
+      });
+      expect(fake.rpcCalls).toHaveLength(0);
+    });
+  });
+
+  describe('deleteImage', () => {
+    it('deletes the row, then the photo file', async () => {
+      const fake = asAdmin({
+        'images.select': [{ data: { storage_path: 'photos/a.jpg' }, error: null }],
+        'images.delete': [changed(IMG_1)],
+      });
+
+      expect(await deleteImage(IMG_1)).toEqual({ ok: true });
+      expect(fake.calls.at(-1)).toMatchObject({ table: 'images', op: 'delete' });
+      expect(fake.storageCalls[0].args).toEqual([['photos/a.jpg']]);
+    });
+
+    it('keeps the file when the row could not be deleted', async () => {
+      const fake = asAdmin({
+        'images.select': [{ data: { storage_path: 'photos/a.jpg' }, error: null }],
+        'images.delete': [{ data: null, error: { message: 'denied' } }],
+      });
+
+      expect(await deleteImage(IMG_1)).toEqual({ ok: false, error: "Couldn't delete the photo: denied" });
+      expect(fake.storageCalls).toHaveLength(0);
+    });
+
+    it('still succeeds when the file cannot be removed afterwards', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      asAdmin({
+        'images.select': [{ data: { storage_path: 'photos/a.jpg' }, error: null }],
+        'images.delete': [changed(IMG_1)],
+        'storage.remove': [{ data: null, error: { message: 'denied' } }],
+      });
+
+      expect(await deleteImage(IMG_1)).toEqual({ ok: true });
+    });
   });
 
   describe('updateProfile', () => {
@@ -218,10 +349,10 @@ describe('admin actions', () => {
     });
 
     it('reports a failure when no row was updated', async () => {
-      asAdmin({ 'site_profile.update': [{ data: [], error: null }] });
+      asAdmin({ 'site_profile.update': [unchanged] });
       expect(await updateProfile(input)).toEqual({
         ok: false,
-        error: "Couldn't save the profile: the profile row is missing.",
+        error: "Couldn't save the profile: nothing was changed. Reload and try again.",
       });
     });
   });

@@ -14,9 +14,10 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+-- An empty search_path makes every name explicit, so nothing on the path can shadow them.
+set search_path = ''
 as $$
-  select exists (select 1 from admins where user_id = auth.uid());
+  select exists (select 1 from public.admins where user_id = auth.uid());
 $$;
 
 -- Public read

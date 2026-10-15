@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
 import { getAdminData } from '@/lib/admin/queries';
+import { loginHref } from '@/lib/admin/loginRedirect';
 import AdminHeader from './AdminHeader';
 import CategoryList from './CategoryList';
 import NotAuthorized from './NotAuthorized';
@@ -14,13 +15,14 @@ type AdminDashboardProps = {
 export default async function AdminDashboard({ searchParams }: AdminDashboardProps) {
   // Render at request time: the session read uses the clock (token expiry), which can't be prerendered.
   await connection();
+  const { category } = await searchParams;
   const auth = await requireAdmin();
   if (!auth.ok) {
-    if (auth.reason === 'signed-out') redirect('/login');
+    if (auth.reason === 'signed-out') redirect(loginHref(category ? `/admin?category=${encodeURIComponent(category)}` : '/admin'));
+    if (auth.reason === 'error') throw new Error(`Couldn't check your account: ${auth.message}`);
     return <NotAuthorized />;
   }
 
-  const { category } = await searchParams;
   const { categories, activeCategory, images } = await getAdminData(auth.supabase, category);
 
   return (

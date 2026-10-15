@@ -21,12 +21,14 @@ describe('requireAdmin', () => {
     expect(client.rpc).not.toHaveBeenCalled();
   });
 
-  it('reports not-admin when is_admin() is false or errors', async () => {
+  it('reports not-admin when is_admin() is false', async () => {
     fakeClient({ id: 'u1' }, false);
     expect(await requireAdmin()).toEqual({ ok: false, reason: 'not-admin' });
+  });
 
+  it('reports an error, not not-admin, when is_admin() fails', async () => {
     fakeClient({ id: 'u1' }, null, { message: 'boom' });
-    expect(await requireAdmin()).toEqual({ ok: false, reason: 'not-admin' });
+    expect(await requireAdmin()).toEqual({ ok: false, reason: 'error', message: 'boom' });
   });
 
   it('returns the client and user id for the admin', async () => {

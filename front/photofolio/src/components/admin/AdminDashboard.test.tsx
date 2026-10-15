@@ -28,7 +28,12 @@ describe('AdminDashboard', () => {
   it('redirects to the login page when signed out', async () => {
     vi.mocked(requireAdmin).mockResolvedValue({ ok: false, reason: 'signed-out' });
     await expect(AdminDashboard({ searchParams })).rejects.toThrow('NEXT_REDIRECT');
-    expect(redirect).toHaveBeenCalledWith('/login');
+    expect(redirect).toHaveBeenCalledWith('/login?next=%2Fadmin%3Fcategory%3Dweddings');
+  });
+
+  it('shows the error page, not the not-authorized view, when the account check fails', async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({ ok: false, reason: 'error', message: 'timeout' });
+    await expect(AdminDashboard({ searchParams })).rejects.toThrow("Couldn't check your account: timeout");
   });
 
   it('shows the not-authorized view for a non-admin account', async () => {

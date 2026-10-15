@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
 import { getProfile } from '@/lib/api';
+import { loginHref } from '@/lib/admin/loginRedirect';
 import AdminHeader from './AdminHeader';
 import NotAuthorized from './NotAuthorized';
 import ProfileForm from './ProfileForm';
@@ -11,7 +12,8 @@ export default async function ProfileEditor() {
   await connection();
   const auth = await requireAdmin();
   if (!auth.ok) {
-    if (auth.reason === 'signed-out') redirect('/login');
+    if (auth.reason === 'signed-out') redirect(loginHref('/admin/profile'));
+    if (auth.reason === 'error') throw new Error(`Couldn't check your account: ${auth.message}`);
     return <NotAuthorized />;
   }
 

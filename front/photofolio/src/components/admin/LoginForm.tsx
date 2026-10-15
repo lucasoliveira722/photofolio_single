@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { safeNextPath } from '@/lib/admin/loginRedirect';
 import { inputClass, labelClass, primaryButtonClass } from './styles';
 
 export default function LoginForm() {
@@ -27,7 +28,8 @@ export default function LoginForm() {
       return;
     }
 
-    router.replace('/admin');
+    // Read at submit time so the login page itself stays static.
+    router.replace(safeNextPath(new URLSearchParams(window.location.search).get('next')));
     router.refresh();
   }
 

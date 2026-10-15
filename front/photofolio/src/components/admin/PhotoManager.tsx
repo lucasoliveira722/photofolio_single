@@ -32,7 +32,7 @@ export default function PhotoManager({ category, categories, images }: PhotoMana
     if (!over || active.id === over.id) return;
     const ids = moveId(items.map((image) => image.id), String(active.id), String(over.id));
     const next = ids.map((id) => items.find((image) => image.id === id)!);
-    const result = await update(next, () => reorderImages(ids));
+    const result = await update(next, () => reorderImages(category.id, ids));
     setFailure(result.ok ? null : result);
   }
 
